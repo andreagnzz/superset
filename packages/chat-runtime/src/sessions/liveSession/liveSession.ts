@@ -58,6 +58,14 @@ function withoutQueued(item: UserMessage): UserMessage {
 	return next;
 }
 
+function withHiddenWrapped(content: UserContent[]): UserContent[] {
+	return content.map((part) =>
+		part.type === "text" && part.hidden
+			? { type: "text" as const, text: wrapHiddenText(part.text) }
+			: part,
+	);
+}
+
 export class LiveSession {
 	private readonly queue: PendingPrompt[] = [];
 	private readonly pendingSteers: PendingPrompt[] = [];
@@ -141,11 +149,7 @@ export class LiveSession {
 		const shown = content.filter(
 			(part) => !(part.type === "text" && part.hidden),
 		);
-		const sent = content.map((part) =>
-			part.type === "text" && part.hidden
-				? { type: "text" as const, text: wrapHiddenText(part.text) }
-				: part,
-		);
+		const sent = withHiddenWrapped(content);
 		const wantsSteer =
 			steerTurnId !== undefined ||
 			this.sessionState.awaitingBackground === true;
@@ -308,8 +312,10 @@ export class LiveSession {
 
 	steerSubagent(taskId: string, content: UserContent[]): Promise<boolean> {
 		return (
-			this.options.adapter.steerSubagent?.(taskId, content) ??
-			Promise.resolve(false)
+			this.options.adapter.steerSubagent?.(
+				taskId,
+				withHiddenWrapped(content),
+			) ?? Promise.resolve(false)
 		);
 	}
 

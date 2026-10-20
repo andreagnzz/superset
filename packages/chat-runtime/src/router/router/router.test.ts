@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { wrapHiddenText } from "@superset/chat/protocol";
 import type { FakeHarnessScript } from "../../harness/fake";
 import type { ChatRuntime } from "../../index";
 import { agentMessage, turn } from "../../testing/fixtures";
@@ -260,8 +261,24 @@ describe("createChatRouter", () => {
 				content,
 			}),
 		).toEqual({ result: "finished" });
+		await caller.steerSubagent({
+			commandId: randomUUID(),
+			sessionId: created.sessionId,
+			taskId: "subagent:child-1",
+			content: [
+				{ type: "text", text: "use the server" },
+				{ type: "text", text: "MCP server: linear", hidden: true },
+			],
+		});
 		expect(adapters[0]?.steeredSubagents).toEqual([
 			{ taskId: "subagent:child-1", content },
+			{
+				taskId: "subagent:child-1",
+				content: [
+					{ type: "text", text: "use the server" },
+					{ type: "text", text: wrapHiddenText("MCP server: linear") },
+				],
+			},
 		]);
 		await expect(
 			caller.steerSubagent({
