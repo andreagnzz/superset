@@ -10255,7 +10255,7 @@ msgid "Mesh Gradient"
 msgstr "Mesh gradyanı"
 
 msgid "Message {name}…"
-msgstr "{name} için mesaj…"
+msgstr "Mesaj gönder: {name}…"
 
 msgid "Message in channel"
 msgstr "Kanalda mesaj"
@@ -18024,7 +18024,7 @@ msgid "To"
 msgstr "Hedef"
 
 msgid "to {name}"
-msgstr "{name} için"
+msgstr "{name} adlı ajana"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "Bir ajan konuşmasını sürdürmek için klasöründe şunu çalıştırın:"

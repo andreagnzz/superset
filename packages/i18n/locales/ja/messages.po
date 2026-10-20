@@ -810,7 +810,7 @@ msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {#件のツールを使用} other {#件のツールを使用}}"
 
 msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
-msgstr "{count, plural, other {サブエージェント # 件を待機中}}"
+msgstr "{count, plural, other {# 件のサブエージェントを待機中}}"
 
 msgid "{count} GitHub stars"
 msgstr "GitHubスター{count}件"
@@ -979,7 +979,7 @@ msgid "{name} accounts"
 msgstr "{name} のアカウント"
 
 msgid "{name} asks"
-msgstr "{name} からの確認"
+msgstr "{name} が確認を求めています"
 
 msgid "{name} can't be messaged"
 msgstr "{name} にはメッセージを送れません"
@@ -1115,7 +1115,7 @@ msgid "{share}% human"
 msgstr "人間{share}%"
 
 msgid "{shellCount, plural, one {# shell} other {# shells}}"
-msgstr "{shellCount, plural, other {シェル # 件}}"
+msgstr "{shellCount, plural, other {# 件のシェル}}"
 
 msgid "{shown} of {total}"
 msgstr "{total}件中{shown}件"
@@ -1138,7 +1138,7 @@ msgid "{subagentCount, plural, one {# subagent running} other {# subagents runni
 msgstr "{subagentCount, plural, other {# 件のサブエージェントが実行中}}"
 
 msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
-msgstr "{subagentCount, plural, other {サブエージェント # 件}}"
+msgstr "{subagentCount, plural, other {# 件のサブエージェント}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {#件のワークスペースを作成、{failCount}件失敗} other {#件のワークスペースを作成、{failCount}件失敗}}"

@@ -810,7 +810,7 @@ msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {도구 #개 사용} other {도구 #개 사용}}"
 
 msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
-msgstr "{count, plural, other {서브 에이전트 #개 대기 중}}"
+msgstr "{count, plural, other {#개의 서브 에이전트를 기다리는 중}}"
 
 msgid "{count} GitHub stars"
 msgstr "GitHub 스타 {count}개"
@@ -979,7 +979,7 @@ msgid "{name} accounts"
 msgstr "{name} 계정"
 
 msgid "{name} asks"
-msgstr "{name}의 요청"
+msgstr "{name}이(가) 요청함"
 
 msgid "{name} can't be messaged"
 msgstr "{name}에게 메시지를 보낼 수 없습니다"
