@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, jest } from "bun:test";
 import { spawn } from "node:child_process";
 import type { Item } from "@superset/chat/protocol";
 import { AGENT_DEFAULT_MODE, wrapHiddenText } from "@superset/chat/protocol";
@@ -4564,31 +4564,38 @@ describe("AcpAdapter on protocol v2", () => {
 			});
 
 			it("a subagent steer waits past the request timeout", async () => {
-				const agent = new FakeAcpAgent();
-				agent.holdChildPrompts = true;
-				const { adapter } = startAdapter(
-					agent,
-					undefined,
-					{},
-					{ requestTimeoutMs: 5 },
-				);
-				await flush();
+				jest.useFakeTimers();
+				try {
+					const agent = new FakeAcpAgent();
+					agent.holdChildPrompts = true;
+					const { adapter } = startAdapter(
+						agent,
+						undefined,
+						{},
+						{ requestTimeoutMs: 5 },
+					);
+					await flush();
 
-				agent.notify("sess-1", start("child-1"));
-				await flush();
+					agent.notify("sess-1", start("child-1"));
+					await flush();
 
-				const steered = adapter.steerSubagent("subagent:child-1", [
-					{ type: "text", text: "one" },
-				]);
-				await Bun.sleep(20);
-				agent.answerChildPrompt(
-					agent.heldChildPrompts[0] as number,
-					"inserted",
-				);
+					const steered = adapter.steerSubagent("subagent:child-1", [
+						{ type: "text", text: "one" },
+					]);
+					await flush();
+					jest.advanceTimersByTime(20);
+					await flush();
+					agent.answerChildPrompt(
+						agent.heldChildPrompts[0] as number,
+						"inserted",
+					);
 
-				expect(await steered).toBe(true);
+					expect(await steered).toBe(true);
 
-				await adapter.dispose();
+					await adapter.dispose();
+				} finally {
+					jest.useRealTimers();
+				}
 			});
 
 			it("a steer that overlaps another is credited only by its own answer", async () => {
