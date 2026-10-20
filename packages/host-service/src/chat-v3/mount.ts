@@ -172,6 +172,7 @@ export function registerChatV3Routes(options: {
 			const sessionId = c.req.param("sessionId") ?? "";
 			const sinceRaw = c.req.query("since");
 			const deltasRaw = c.req.query("deltas");
+			const nestedSubagents = c.req.query("nestedSubagents") === "1";
 			let unsubscribe: (() => void) | null = null;
 
 			return {
@@ -200,7 +201,11 @@ export function registerChatV3Routes(options: {
 
 					const subscription = options.mount
 						.runtime()
-						.subscribe(sessionId, { since, deltas }, createWsSink(socket));
+						.subscribe(
+							sessionId,
+							{ since, deltas, nestedSubagents },
+							createWsSink(socket),
+						);
 					unsubscribe = () => subscription.unsubscribe();
 				},
 

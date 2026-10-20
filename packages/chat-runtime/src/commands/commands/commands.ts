@@ -61,6 +61,7 @@ import type {
 	PromptResult,
 	QueueState,
 } from "../../sessions";
+import { SubagentItems } from "../../stream";
 
 export const createSessionCommandSchema = createSessionInputSchema
 	.omit({ workspaceId: true })
@@ -224,12 +225,14 @@ export type CommandsOptions = {
 	live: LiveSessionRegistry;
 	dedupe: { run<T>(commandId: string, execute: () => T): T };
 	mintSessionId?: () => string;
+	subagentItems?: SubagentItems;
 };
 
 const MAX_CACHED_REPLAY_EVENTS = 20_000;
 
 export function createCommands(options: CommandsOptions): ChatCommands {
 	const mintSessionId = options.mintSessionId ?? randomUUID;
+	const subagentItems = options.subagentItems ?? new SubagentItems(options.db);
 
 	const replays = new Map<
 		string,
@@ -599,28 +602,51 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 
 		getItems(input) {
 			const parsed: GetItemsInput = getItemsInputSchema.parse(input);
-			return readPage(options.db, parsed.sessionId, {
+			const page = readPage(options.db, parsed.sessionId, {
 				before: parsed.before,
 				limit: parsed.limit,
 			});
+			if (!page.ok || parsed.nestedSubagents) return page;
+			return {
+				...page,
+				envelopes: page.envelopes.filter(
+					(envelope) => !subagentItems.hiddenFromFlatView(envelope),
+				),
+			};
 		},
 
 		getOutline(input) {
-			const { sessionId } = getOutlineInputSchema.parse(input);
+			const { sessionId, nestedSubagents } = getOutlineInputSchema.parse(input);
 			const replayed = replaySession(sessionId);
 			if (!replayed.ok) return replayed;
-			return { ok: true, outline: outlineSnapshot(replayed.snapshot) };
+			const outline = outlineSnapshot(replayed.snapshot);
+			if (nestedSubagents) return { ok: true, outline };
+			return {
+				ok: true,
+				outline: {
+					...outline,
+					items: outline.items.filter(
+						(stored) => !subagentItems.hides(sessionId, stored.item),
+					),
+				},
+			};
 		},
 
 		getItemBodies(input) {
-			const { sessionId, itemIds } = getItemBodiesInputSchema.parse(input);
+			const { sessionId, itemIds, nestedSubagents } =
+				getItemBodiesInputSchema.parse(input);
 			const replayed = replaySession(sessionId);
 			if (!replayed.ok) return replayed;
 			return {
 				ok: true,
 				items: itemIds.flatMap((id) => {
 					const stored = replayed.snapshot.items.get(id);
-					return stored ? [stored] : [];
+					if (
+						!stored ||
+						(!nestedSubagents && subagentItems.hides(sessionId, stored.item))
+					)
+						return [];
+					return [stored];
 				}),
 			};
 		},

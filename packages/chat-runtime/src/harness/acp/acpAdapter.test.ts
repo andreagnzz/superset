@@ -3339,11 +3339,13 @@ describe("AcpAdapter on protocol v2", () => {
 				type: "text",
 				itemId: "sub:child-1:agent_message:m1",
 				append: "Looking ",
+				parentItemId: "subagent:child-1",
 			},
 			{
 				type: "text",
 				itemId: "sub:child-1:agent_message:m1",
 				append: "closer.",
+				parentItemId: "subagent:child-1",
 			},
 		]);
 

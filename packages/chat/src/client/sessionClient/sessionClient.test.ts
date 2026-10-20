@@ -10,6 +10,7 @@ import {
 	createTestRuntime,
 	FAKE_HARNESS,
 	fakeHarnessRegistry,
+	toolCall,
 	turn,
 	waitFor,
 } from "@superset/chat-runtime/testing";
@@ -58,6 +59,85 @@ async function idle(runtime: ChatRuntime, sessionId: string): Promise<void> {
 }
 
 describe("createSessionClient", () => {
+	test("only a client that nests subagents reads a subagent's own items", async () => {
+		const { runtime, transport, server } = startStack({
+			turns: [
+				[
+					{ kind: "turn", turn: turn("t1") },
+					{
+						kind: "item",
+						item: toolCall("subagent:c", { subagent: true }),
+						turnId: "t1",
+					},
+					{
+						kind: "item",
+						item: {
+							...agentMessage("sub:c:a", "child"),
+							parentItemId: "subagent:c",
+						},
+						turnId: "t1",
+					},
+					{
+						kind: "turn",
+						turn: turn("t1", { status: "completed", completedAtMs: 2 }),
+					},
+					{ kind: "session", session: { status: "idle" } },
+				],
+			],
+		});
+		const created = await transport.createSession({
+			commandId: randomUUID(),
+			workspaceId: "workspace-1",
+			harness: FAKE_HARNESS,
+		});
+		const makeClient = (nestedSubagents: boolean) =>
+			createSessionClient({
+				sessionId: created.sessionId,
+				transport,
+				streamBaseUrl: "ws://test/chat-v3",
+				createSocket: server.createSocket,
+				nestedSubagents,
+			});
+		const nested = makeClient(true);
+		const flat = makeClient(false);
+		await nested.prompt({
+			clientId: "c1",
+			content: [{ type: "text", text: "go" }],
+		});
+		await idle(runtime, created.sessionId);
+
+		const ids = (envelopes: Envelope[]) =>
+			envelopes.flatMap((envelope) =>
+				isDurableEnvelope(envelope) && envelope.event.type === "item"
+					? [envelope.event.item.id]
+					: [],
+			);
+		const nestedPage = await nested.getItems();
+		const flatPage = await flat.getItems();
+		expect(nestedPage.ok && ids(nestedPage.envelopes)).toContain("sub:c:a");
+		expect(flatPage.ok && ids(flatPage.envelopes)).not.toContain("sub:c:a");
+
+		const outlineIds = async (client: typeof flat) => {
+			const result = await client.getOutline();
+			return result.ok
+				? result.outline.items.map((stored) => stored.item.id)
+				: [];
+		};
+		expect(await outlineIds(nested)).toContain("sub:c:a");
+		expect(await outlineIds(flat)).not.toContain("sub:c:a");
+
+		const streamed = { nested: [] as Envelope[], flat: [] as Envelope[] };
+		nested.subscribe({ onEnvelope: (e) => streamed.nested.push(e) });
+		flat.subscribe({ onEnvelope: (e) => streamed.flat.push(e) });
+		await waitFor(() => streamed.nested.length > 0 && streamed.flat.length > 0);
+		expect(ids(streamed.nested)).toContain("sub:c:a");
+		expect(ids(streamed.flat)).not.toContain("sub:c:a");
+
+		nested.close();
+		flat.close();
+		await runtime.dispose();
+	});
+
 	test("prompt, getSession and getItems pagination round trip", async () => {
 		const { runtime, transport, server } = startStack();
 		const created = await transport.createSession({

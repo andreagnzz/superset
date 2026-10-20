@@ -126,6 +126,7 @@ export const deltaSchema = z.discriminatedUnion("type", [
 		type: z.literal("text"),
 		itemId: z.string().min(1),
 		append: z.string(),
+		parentItemId: z.string().min(1).optional(),
 	}),
 	z.looseObject({
 		type: z.literal("tool_input"),

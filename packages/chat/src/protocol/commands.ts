@@ -179,16 +179,19 @@ export const getItemsInputSchema = z.object({
 	sessionId: z.string().min(1),
 	before: cursorSchema.optional(),
 	limit: z.number().int().positive().max(500).default(200),
+	nestedSubagents: z.boolean().optional(),
 });
 export type GetItemsInput = z.infer<typeof getItemsInputSchema>;
 
 export const getOutlineInputSchema = z.object({
 	sessionId: z.string().min(1),
+	nestedSubagents: z.boolean().optional(),
 });
 export type GetOutlineInput = z.infer<typeof getOutlineInputSchema>;
 
 export const getItemBodiesInputSchema = z.object({
 	sessionId: z.string().min(1),
 	itemIds: z.array(z.string().min(1)).min(1).max(100),
+	nestedSubagents: z.boolean().optional(),
 });
 export type GetItemBodiesInput = z.infer<typeof getItemBodiesInputSchema>;

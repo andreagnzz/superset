@@ -59,6 +59,7 @@ export type SessionClientOptions = {
 	transport: ChatTransport;
 	streamBaseUrl: string;
 	createSocket: StreamSocketFactory;
+	nestedSubagents?: boolean;
 	mintId?(): string;
 	wait?: Wait;
 	backoffInitialMs?: number;
@@ -95,6 +96,7 @@ export function createSessionClient(
 	const mintId = options.mintId ?? (() => crypto.randomUUID());
 	const sessionId = options.sessionId;
 	const streams = new Set<SessionStream>();
+	const nested = options.nestedSubagents ? { nestedSubagents: true } : {};
 
 	return {
 		sessionId,
@@ -106,12 +108,13 @@ export function createSessionClient(
 				sessionId,
 				before: page.before,
 				limit: page.limit,
+				...nested,
 			}),
 
-		getOutline: () => options.transport.getOutline({ sessionId }),
+		getOutline: () => options.transport.getOutline({ sessionId, ...nested }),
 
 		getItemBodies: (itemIds) =>
-			options.transport.getItemBodies({ sessionId, itemIds }),
+			options.transport.getItemBodies({ sessionId, itemIds, ...nested }),
 
 		prompt: (promptOptions) =>
 			options.transport.prompt({
@@ -213,6 +216,7 @@ export function createSessionClient(
 						sessionId,
 						deltas,
 						since,
+						nestedSubagents: options.nestedSubagents,
 					}),
 				since: subscribeOptions.since,
 				onEnvelope: subscribeOptions.onEnvelope,

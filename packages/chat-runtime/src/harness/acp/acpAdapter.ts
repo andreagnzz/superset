@@ -1670,7 +1670,8 @@ export class AcpAdapter implements HarnessAdapter {
 			parentItemId: item.id,
 			streamUserMessages: true,
 			emitItem: (child, childTurnId) => this.emitItem(child, childTurnId),
-			emitTextDelta: (itemId, append) => this.emitTextDelta(itemId, append),
+			emitTextDelta: (itemId, append) =>
+				this.emitTextDelta(itemId, append, item.id),
 			attachmentOf: (block, referenceId) =>
 				this.attachmentOf(
 					block,
@@ -2375,8 +2376,20 @@ export class AcpAdapter implements HarnessAdapter {
 		this.emit({ kind: "item", item, turnId });
 	}
 
-	private emitTextDelta(itemId: string, append: string): void {
-		this.emit({ kind: "delta", delta: { type: "text", itemId, append } });
+	private emitTextDelta(
+		itemId: string,
+		append: string,
+		parentItemId?: string,
+	): void {
+		this.emit({
+			kind: "delta",
+			delta: {
+				type: "text",
+				itemId,
+				append,
+				...(parentItemId ? { parentItemId } : {}),
+			},
+		});
 	}
 
 	private emitNotice(
