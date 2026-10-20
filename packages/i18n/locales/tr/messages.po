@@ -697,6 +697,9 @@ msgstr "şu ana kadar {actual} · ~{projected} öngörülüyor"
 msgid "{agents} sessions resume when you open their workspace."
 msgstr "{agents} oturumları, çalışma alanlarını açtığınızda devam eder."
 
+msgid "{approvalCount, plural, one {# needs approval} other {# need approval}}"
+msgstr "{approvalCount, plural, other {# onay bekliyor}}"
+
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {main dalının # commit gerisinde, rebase gerekiyor} other {main dalının # commit gerisinde, rebase gerekiyor}}"
 

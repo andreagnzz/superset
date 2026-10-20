@@ -1,5 +1,5 @@
 import { plural } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import { type SessionSnapshot, userMessageText } from "@superset/chat/core";
 import type {
 	ApprovalRequest,
@@ -305,7 +305,10 @@ export function WorkDrawer({
 			</span>
 			{approvalCount > 0 && (
 				<span className="shrink-0 text-warning">
-					{approvalCount} <Trans>needs approval</Trans>
+					{plural(approvalCount, {
+						one: "# needs approval",
+						other: "# need approval",
+					})}
 				</span>
 			)}
 		</>

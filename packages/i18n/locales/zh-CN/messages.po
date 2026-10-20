@@ -697,6 +697,9 @@ msgstr "目前{actual} · 预计约{projected}"
 msgid "{agents} sessions resume when you open their workspace."
 msgstr "打开对应工作区时，{agents} 会话会恢复。"
 
+msgid "{approvalCount, plural, one {# needs approval} other {# need approval}}"
+msgstr "{approvalCount, plural, other {# 个需要批准}}"
+
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {落后main #个提交，需要变基} other {落后main #个提交，需要变基}}"
 

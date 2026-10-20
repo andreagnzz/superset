@@ -697,6 +697,9 @@ msgstr "{actual} bisher · ~{projected} erwartet"
 msgid "{agents} sessions resume when you open their workspace."
 msgstr "{agents}-Sitzungen werden fortgesetzt, wenn du ihren Workspace öffnest."
 
+msgid "{approvalCount, plural, one {# needs approval} other {# need approval}}"
+msgstr "{approvalCount, plural, one {# wartet auf Freigabe} other {# warten auf Freigabe}}"
+
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {# Commit hinter main, Rebase nötig} other {# Commits hinter main, Rebase nötig}}"
 

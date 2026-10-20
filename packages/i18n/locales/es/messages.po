@@ -697,6 +697,9 @@ msgstr "{actual} hasta ahora · ~{projected} previstas"
 msgid "{agents} sessions resume when you open their workspace."
 msgstr "Las sesiones de {agents} se reanudan cuando abres su espacio de trabajo."
 
+msgid "{approvalCount, plural, one {# needs approval} other {# need approval}}"
+msgstr "{approvalCount, plural, one {# necesita aprobación} other {# necesitan aprobación}}"
+
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {# commit por detrás de main, necesita rebase} other {# commits por detrás de main, necesita rebase}}"
 

@@ -697,6 +697,9 @@ msgstr "{actual} đến hiện tại · dự kiến ~{projected}"
 msgid "{agents} sessions resume when you open their workspace."
 msgstr "Các phiên {agents} sẽ tiếp tục khi bạn mở workspace của chúng."
 
+msgid "{approvalCount, plural, one {# needs approval} other {# need approval}}"
+msgstr "{approvalCount, plural, other {# cần phê duyệt}}"
+
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {Chậm hơn main # commit, cần rebase} other {Chậm hơn main # commit, cần rebase}}"
 
