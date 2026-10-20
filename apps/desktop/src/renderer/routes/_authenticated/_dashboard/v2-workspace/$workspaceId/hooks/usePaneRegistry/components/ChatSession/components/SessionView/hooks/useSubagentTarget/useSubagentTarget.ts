@@ -24,7 +24,7 @@ export function useSubagentTarget({
 	draftKey: string;
 	onSend: Send;
 	onStop: (taskId: string) => void;
-	onUnsent: (content: UserContent[]) => void;
+	onUnsent: (content: UserContent[], draftKey: string) => void;
 }): {
 	onSend: Send;
 	target: ComposerTarget | undefined;
@@ -73,10 +73,11 @@ export function useSubagentTarget({
 	const steer = useCallback(
 		async (content: UserContent[]) => {
 			if (!itemId) return;
+			const origin = `${draftKey}:subagent:${itemId}`;
 			try {
 				const result = await client.steerSubagent(itemId, content);
 				if (result === "steered") return;
-				onUnsent(content);
+				onUnsent(content, origin);
 				if (result === "unsupported") {
 					setHostCannotSteer(true);
 					toast.error(hostTooOldReason);
@@ -85,7 +86,7 @@ export function useSubagentTarget({
 				}
 			} catch (error) {
 				console.warn("[useSubagentTarget] could not message subagent", error);
-				onUnsent(content);
+				onUnsent(content, origin);
 				toast.error(
 					t({
 						message: "Couldn't send your message. It's back in the composer.",
@@ -93,7 +94,15 @@ export function useSubagentTarget({
 				);
 			}
 		},
-		[client, itemId, onUnsent, hostTooOldReason, unreachableReason, t],
+		[
+			client,
+			itemId,
+			draftKey,
+			onUnsent,
+			hostTooOldReason,
+			unreachableReason,
+			t,
+		],
 	);
 
 	return {

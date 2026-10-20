@@ -5063,6 +5063,36 @@ describe("AcpAdapter images", () => {
 			| undefined;
 	};
 
+	it("keeps an image a subagent sends in its own message", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startWithStore(agent, () => ({
+			path: ".superset/attachments/child-shot.png",
+		}));
+		await flush();
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_update",
+			sessionId: "child-1",
+			title: "explore",
+			state: { state: "running" },
+		});
+		await flush();
+		agent.notify("child-1", {
+			sessionUpdate: "agent_message_chunk",
+			messageId: "m1",
+			content: { type: "image", mimeType: "image/png", data: PNG_BASE64 },
+		});
+		await flush();
+		const message = itemsOf(events)
+			.filter(
+				(item) =>
+					item.kind === "agent_message" &&
+					item.parentItemId === "subagent:child-1",
+			)
+			.at(-1) as Extract<Item, { kind: "agent_message" }> | undefined;
+		expect(message?.attachments).toHaveLength(1);
+		await adapter.dispose();
+	});
+
 	it("keeps an image block from a tool result as a stored attachment, never its bytes", async () => {
 		const agent = new FakeAcpAgent();
 		const stored: Array<{ source: AcpImageSource; cwd: string }> = [];

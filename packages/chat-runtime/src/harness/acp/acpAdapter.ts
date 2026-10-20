@@ -1670,7 +1670,11 @@ export class AcpAdapter implements HarnessAdapter {
 			streamUserMessages: true,
 			emitItem: (child, childTurnId) => this.emitItem(child, childTurnId),
 			emitTextDelta: (itemId, append) => this.emitTextDelta(itemId, append),
-			attachmentOf: () => null,
+			attachmentOf: (block, referenceId) =>
+				this.attachmentOf(
+					block,
+					referenceId ? `sub:${sessionId}:${referenceId}` : undefined,
+				),
 			nextStartMs: () => this.nextStartMs(),
 			now: () => this.now(),
 			mintId: () => this.mintId(),

@@ -1,5 +1,5 @@
-import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 
 export function combinePullRequestReadErrors(
 	hostError: unknown,

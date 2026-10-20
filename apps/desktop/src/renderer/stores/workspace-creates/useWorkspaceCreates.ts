@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
-import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import { i18n } from "@superset/i18n";
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";

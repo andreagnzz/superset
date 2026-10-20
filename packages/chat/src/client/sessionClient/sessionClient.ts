@@ -2,10 +2,10 @@ import type {
 	ChatRouterInputs,
 	ChatRouterOutputs,
 } from "@superset/chat-runtime";
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
 import type { Decision, UserContent } from "../../protocol/items";
-import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import type {
 	SessionStream,
 	StreamSocketFactory,

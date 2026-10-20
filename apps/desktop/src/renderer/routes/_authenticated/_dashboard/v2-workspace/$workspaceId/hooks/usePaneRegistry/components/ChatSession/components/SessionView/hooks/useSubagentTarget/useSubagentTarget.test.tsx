@@ -37,7 +37,7 @@ function renderTarget(item: ToolCall, result: SteerSubagentResult = "steered") {
 	);
 	const sendPrompt = mock((_content: UserContent[]) => {});
 	const stopTask = mock((_taskId: string) => {});
-	const onUnsent = mock((_content: UserContent[]) => {});
+	const onUnsent = mock((_content: UserContent[], _draftKey: string) => {});
 	const hook = renderHook(() =>
 		useSubagentTarget({
 			client: { steerSubagent },
@@ -131,7 +131,10 @@ test("a host too old to message subagents gives the text back and says so", asyn
 	await act(async () => {
 		await hook.result.current.onSend(typed, { steer: false });
 	});
-	expect(onUnsent).toHaveBeenCalledWith(typed);
+	expect(onUnsent).toHaveBeenCalledWith(
+		typed,
+		`chat-v3-draft:t1:subagent:${explore.id}`,
+	);
 	expect(hook.result.current.target?.disabledReason).toBe(
 		"Update this host to message subagents",
 	);

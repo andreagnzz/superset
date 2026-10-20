@@ -134,7 +134,7 @@ export const ChatSessionView = forwardRef<
 	useEffect(() => () => client.close(), [client]);
 
 	const chat = useChatSession({ client });
-	const groups = useTimeline(chat.snapshot, { nestChildItems: true });
+	const groups = useTimeline(chat.snapshot);
 	const rows = useMemo(
 		() => groupActivity(chatRows(groups, chat.outbox)),
 		[groups, chat.outbox],

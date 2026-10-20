@@ -1,5 +1,5 @@
-import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import type { Pane } from "@superset/panes";
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import {
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,

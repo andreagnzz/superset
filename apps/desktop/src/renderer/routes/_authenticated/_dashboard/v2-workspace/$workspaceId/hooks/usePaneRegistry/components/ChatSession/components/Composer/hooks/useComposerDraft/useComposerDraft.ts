@@ -38,10 +38,14 @@ function joinDrafts(drafts: readonly string[]): string {
 	);
 }
 
-export function prependToDraft(draftKey: string, texts: readonly string[]) {
+export function prependToDraft(
+	draftKey: string,
+	texts: readonly string[],
+	persisted = true,
+) {
 	const merged = joinDrafts([...texts, readDraft(draftKey) ?? ""]);
 	unsavedDrafts.set(draftKey, merged);
-	persistDraft(draftKey, merged);
+	if (persisted) persistDraft(draftKey, merged);
 	recoveredAfterRead.set(draftKey, [
 		...(recoveredAfterRead.get(draftKey) ?? []),
 		...texts,

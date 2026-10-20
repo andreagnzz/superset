@@ -109,3 +109,15 @@ test("text recovered while another target is open shows once on return", () => {
 	expect(hook.result.current.storedDraft).toBe("unsent message");
 	expect(takeRecoveredDraftText("chat-v3-draft:return")).toBeNull();
 });
+
+test("text restored to a subagent's draft stays in memory and reaches its composer", () => {
+	prependToDraft("chat-v3-draft:t1:subagent:c1", ["for the subagent"], false);
+	expect(
+		window.localStorage.getItem("chat-v3-draft:t1:subagent:c1"),
+	).toBeNull();
+
+	const reopened = renderHook(() =>
+		useComposerDraft("chat-v3-draft:t1:subagent:c1", false),
+	);
+	expect(reopened.result.current.storedDraft).toBe("for the subagent");
+});

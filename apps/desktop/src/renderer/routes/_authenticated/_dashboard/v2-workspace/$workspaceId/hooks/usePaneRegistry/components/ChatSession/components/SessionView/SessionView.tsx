@@ -151,6 +151,18 @@ export function SessionView({
 	const drawerRef = useRef<WorkDrawerHandle>(null);
 	const paneRef = useRef<HTMLDivElement>(null);
 	const { outbox, discardPrompt } = session;
+	const openDraftKey = useRef(draftKey);
+	const restoreText = useCallback(
+		(text: string, originKey: string) => {
+			if (originKey !== openDraftKey.current) {
+				prependToDraft(originKey, [text], originKey === draftKey);
+				return;
+			}
+			composerRef.current?.appendText(text);
+			composerRef.current?.focus();
+		},
+		[draftKey],
+	);
 	useEffect(() => {
 		const failed = outbox.filter(
 			(entry) =>
@@ -160,13 +172,12 @@ export function SessionView({
 		if (failed.length === 0) return;
 		for (const entry of failed) {
 			discardPrompt(entry.clientId);
-			composerRef.current?.appendText(contentText(entry.content));
+			restoreText(contentText(entry.content), draftKey);
 		}
-		composerRef.current?.focus();
 		toast.error(
 			t({ message: "Couldn't send your message. It's back in the composer." }),
 		);
-	}, [outbox, discardPrompt, t]);
+	}, [outbox, discardPrompt, restoreText, draftKey, t]);
 	const outboxRef = useRef(outbox);
 	outboxRef.current = outbox;
 	useEffect(
@@ -366,15 +377,14 @@ export function SessionView({
 	const holdPrompt = held?.onQueue;
 	const onAnswerFailed = useCallback(
 		(content: UserContent[]) => {
-			composerRef.current?.appendText(contentText(content));
-			composerRef.current?.focus();
+			restoreText(contentText(content), draftKey);
 			toast.error(
 				t({
 					message: "Couldn't send your message. It's back in the composer.",
 				}),
 			);
 		},
-		[t],
+		[restoreText, draftKey, t],
 	);
 	const onSend = useMainSend({
 		approvals,
@@ -400,10 +410,11 @@ export function SessionView({
 		shownSubagentId.current = focusedSubagentId;
 		focusComposer();
 	}, [focusedSubagentId, focusComposer]);
-	const restoreUnsent = useCallback((content: UserContent[]) => {
-		composerRef.current?.appendText(contentText(content));
-		composerRef.current?.focus();
-	}, []);
+	const restoreUnsent = useCallback(
+		(content: UserContent[], originKey: string) =>
+			restoreText(contentText(content), originKey),
+		[restoreText],
+	);
 	const onStopTask = useCallback(
 		(taskId: string) =>
 			void stopBackgroundTask(taskId)
@@ -425,6 +436,8 @@ export function SessionView({
 		onStop: onStopTask,
 		onUnsent: restoreUnsent,
 	});
+	openDraftKey.current = subagent.draftKey;
+
 	const onBackgroundSubagent = useMoveToBackground(client);
 	const plugins = usePluginMentionOptions();
 	const childrenByParent = useChildrenByParent(session.snapshot);
