@@ -549,7 +549,7 @@ export class AcpAdapter implements HarnessAdapter {
 		}
 		this.client.notify("session/cancel", { sessionId: this.sessionId });
 		if (this.cancelPendingApprovals(this.currentTurn.id)) {
-			this.emitSession({ status: "running" });
+			this.emitSession({ status: this.statusAfterApprovals() });
 		}
 	}
 
@@ -586,7 +586,7 @@ export class AcpAdapter implements HarnessAdapter {
 			},
 			pending.turnId,
 		);
-		this.emitSession({ status: "running" });
+		this.emitSession({ status: this.statusAfterApprovals() });
 	}
 
 	setMode(modeId: string): void {
@@ -693,10 +693,11 @@ export class AcpAdapter implements HarnessAdapter {
 		if (shellPid !== undefined) return stopProcessGroup(shellPid);
 		if (!this.client || !this.sessionId) return false;
 		const subagentSessionId = this.subagentSessionOf(taskId);
+		const run = subagentSessionId && this.subagents.get(subagentSessionId);
 		if (subagentSessionId) {
-			if (this.subagents.get(subagentSessionId)?.item.canStop !== true)
-				return false;
+			if (!run || run.item.canStop !== true) return false;
 			this.client.notify("session/cancel", { sessionId: subagentSessionId });
+			this.cancelSubagentApprovals(subagentSessionId, run);
 			return true;
 		}
 		if (!this.backgroundTasks.canStop(taskId)) return false;
@@ -1146,7 +1147,7 @@ export class AcpAdapter implements HarnessAdapter {
 		if (stopReason === "refusal")
 			this.emitNotice("info", "The agent declined to continue.");
 		this.cancelPendingApprovals(turnId);
-		this.emitSession({ status: "idle" });
+		this.emitSession({ status: this.statusAfterApprovals() });
 		this.sendCustomAnswer();
 	}
 
@@ -1162,7 +1163,7 @@ export class AcpAdapter implements HarnessAdapter {
 			completedAtMs: this.now(),
 		});
 		this.emitNotice("error", message);
-		this.emitSession({ status: "idle" });
+		this.emitSession({ status: this.statusAfterApprovals() });
 	}
 
 	private handleNotification({ method, params }: AcpNotification): void {
@@ -1720,6 +1721,7 @@ export class AcpAdapter implements HarnessAdapter {
 		open = false,
 	): void {
 		run.stream.flush();
+		this.cancelSubagentApprovals(sessionId, run);
 		this.endSubagentTasks(sessionId);
 		this.backgroundTasks.end(run.item.id);
 		if (!open) {
@@ -2220,9 +2222,49 @@ export class AcpAdapter implements HarnessAdapter {
 	}
 
 	private cancelPendingApprovals(turnId: string): boolean {
+		const liveRuns = new Set(
+			[...this.subagents.values()].map((run) => run.item.id),
+		);
+		return this.cancelApprovals(
+			(pending) =>
+				pending.turnId === turnId &&
+				!liveRuns.has(pending.item.parentItemId ?? ""),
+		);
+	}
+
+	private cancelSubagentApprovals(sessionId: string, run: SubagentRun): void {
+		const sessions = new Set([sessionId]);
+		const runItems = new Set([run.item.id]);
+		let grew = true;
+		while (grew) {
+			grew = false;
+			for (const [childId, child] of this.subagents) {
+				if (sessions.has(childId) || !sessions.has(child.parentSessionId))
+					continue;
+				sessions.add(childId);
+				runItems.add(child.item.id);
+				grew = true;
+			}
+		}
+		if (
+			this.cancelApprovals((pending) =>
+				runItems.has(pending.item.parentItemId ?? ""),
+			)
+		)
+			this.emitSession({ status: this.statusAfterApprovals() });
+	}
+
+	private statusAfterApprovals(): SessionState["status"] {
+		if (this.pendingApprovals.size > 0) return "awaiting_input";
+		return this.currentTurn?.status === "running" ? "running" : "idle";
+	}
+
+	private cancelApprovals(
+		matches: (pending: PendingApproval) => boolean,
+	): boolean {
 		let cancelled = false;
 		for (const [approvalId, pending] of [...this.pendingApprovals]) {
-			if (pending.turnId !== turnId) continue;
+			if (!matches(pending)) continue;
 			cancelled = true;
 			this.pendingApprovals.delete(approvalId);
 			this.client?.respond(
@@ -2250,12 +2292,8 @@ export class AcpAdapter implements HarnessAdapter {
 				pending.turnId,
 			);
 		}
-		if (
-			dropped &&
-			this.pendingApprovals.size === 0 &&
-			this.currentTurn?.status === "running"
-		) {
-			this.emitSession({ status: "running" });
+		if (dropped && this.pendingApprovals.size === 0) {
+			this.emitSession({ status: this.statusAfterApprovals() });
 		}
 	}
 

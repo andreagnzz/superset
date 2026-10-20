@@ -4015,6 +4015,134 @@ describe("AcpAdapter on protocol v2", () => {
 			await adapter.dispose();
 		});
 
+		const approvalOf = (events: AdapterEvent[], id: string) =>
+			itemsOf(events)
+				.filter((item) => item.id === id)
+				.at(-1);
+		const statusOf = (events: AdapterEvent[]) =>
+			sessionsOf(events)
+				.filter((session) => session.status)
+				.at(-1)?.status;
+
+		it("answering a subagent's approval while the main session is idle leaves it idle", async () => {
+			const agent = new FakeAcpAgent();
+			const { adapter, events } = startAdapter(agent);
+			await flush();
+
+			agent.notify("sess-1", announce("child-1"));
+			agent.requestSubagentPermission("child-1", "bash-1", 9101);
+			await flush();
+			expect(statusOf(events)).toBe("awaiting_input");
+
+			adapter.respondToApproval("approval:sub:child-1:bash-1", {
+				type: "accept",
+			});
+			await flush();
+
+			expect(statusOf(events)).toBe("idle");
+			await adapter.dispose();
+		});
+
+		it("answering a subagent's approval during a main turn sets it running", async () => {
+			const agent = new FakeAcpAgent();
+			agent.holdPrompts = true;
+			const { adapter, events } = startAdapter(agent);
+			await flush();
+			adapter.prompt([{ type: "text", text: "go" }]);
+			await flush();
+
+			agent.notify("sess-1", announce("child-1"));
+			agent.requestSubagentPermission("child-1", "bash-1", 9101);
+			await flush();
+			adapter.respondToApproval("approval:sub:child-1:bash-1", {
+				type: "accept",
+			});
+			await flush();
+
+			expect(statusOf(events)).toBe("running");
+			await adapter.dispose();
+		});
+
+		it("keeps a running subagent's approval open when the parent turn ends", async () => {
+			const agent = new FakeAcpAgent();
+			agent.holdPrompts = true;
+			const { adapter, events } = startAdapter(agent);
+			await flush();
+			adapter.prompt([{ type: "text", text: "go" }]);
+			await flush();
+
+			agent.notify("sess-1", announce("child-1"));
+			agent.requestSubagentPermission("child-1", "bash-1", 9101);
+			await flush();
+			agent.releasePrompts("end_turn");
+			await flush();
+
+			expect(agent.responseTo(9101)).toBeUndefined();
+			expect(approvalOf(events, "approval:sub:child-1:bash-1")).toMatchObject({
+				status: "pending",
+			});
+			expect(statusOf(events)).toBe("awaiting_input");
+			await adapter.dispose();
+		});
+
+		it("stopping a subagent cancels its own and its subagents' approvals", async () => {
+			const agent = new FakeAcpAgent();
+			const { adapter, events } = startAdapter(agent);
+			await flush();
+
+			agent.notify("sess-1", announce("child-1"));
+			agent.notify("child-1", announce("child-2"));
+			agent.notify("sess-1", announce("other"));
+			agent.requestSubagentPermission("child-1", "bash-1", 9101);
+			agent.requestSubagentPermission("child-2", "bash-2", 9102);
+			agent.requestSubagentPermission("other", "bash-3", 9103);
+			await flush();
+
+			expect(await adapter.stopBackgroundTask("subagent:child-1")).toBe(true);
+			await flush();
+
+			for (const id of [9101, 9102]) {
+				expect(agent.responseTo(id)?.result).toEqual({
+					outcome: { outcome: "cancelled" },
+				});
+			}
+			expect(agent.responseTo(9103)).toBeUndefined();
+			expect(approvalOf(events, "approval:sub:child-2:bash-2")).toMatchObject({
+				status: "stale",
+			});
+			expect(statusOf(events)).toBe("awaiting_input");
+			await adapter.dispose();
+		});
+
+		it("a subagent that ends answers its open approval as cancelled", async () => {
+			const agent = new FakeAcpAgent();
+			const { adapter, events } = startAdapter(agent);
+			await flush();
+
+			agent.notify("sess-1", {
+				sessionUpdate: "subagent_spawned",
+				subagentSessionId: "child-1",
+				name: "Run tests",
+			});
+			agent.requestSubagentPermission("child-1", "bash-1", 9101);
+			await flush();
+			agent.notify("sess-1", {
+				sessionUpdate: "subagent_state_update",
+				subagentSessionId: "child-1",
+				state: "completed",
+			});
+			await flush();
+
+			expect(agent.responseTo(9101)?.result).toEqual({
+				outcome: { outcome: "cancelled" },
+			});
+			expect(approvalOf(events, "approval:sub:child-1:bash-1")).toMatchObject({
+				status: "stale",
+			});
+			expect(statusOf(events)).toBe("idle");
+			await adapter.dispose();
+		});
+
 		it("clearing sh.superset turns steering off", async () => {
 			const agent = new FakeAcpAgent();
 			const { adapter, events } = startAdapter(agent);
