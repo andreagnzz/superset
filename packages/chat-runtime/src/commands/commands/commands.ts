@@ -93,7 +93,12 @@ export type RewindSessionCommandInput = z.input<
 function lastAgentMessageId(events: DurableEvent[]): string | null {
 	for (let i = events.length - 1; i >= 0; i--) {
 		const event = events[i];
-		if (event?.type !== "item" || event.item.kind !== "agent_message") continue;
+		if (
+			event?.type !== "item" ||
+			event.item.kind !== "agent_message" ||
+			event.item.parentItemId
+		)
+			continue;
 		const id = (event.item as AgentMessage).agentMessageId;
 		if (id) return id;
 	}

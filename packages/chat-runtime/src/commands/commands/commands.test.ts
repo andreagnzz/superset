@@ -561,6 +561,81 @@ describe("chat commands", () => {
 		await runtime.dispose();
 	});
 
+	test("rewindSession forks at the main agent's message, not a subagent's", async () => {
+		const cuts: (string | undefined)[] = [];
+		class CuttingHarness extends FakeHarness {
+			async fork(cut?: { upToMessageId: string }) {
+				cuts.push(cut?.upToMessageId);
+				return "agent-forked";
+			}
+		}
+		const runtime = createTestRuntime({
+			harnesses: new Map([
+				[
+					FAKE_HARNESS,
+					() =>
+						new CuttingHarness({
+							turns: [
+								[
+									{ kind: "turn", turn: turn("t9") },
+									{
+										kind: "turn",
+										turn: turn("t9", { status: "completed" }),
+									},
+									{ kind: "session", session: { status: "idle" } },
+								],
+							],
+						}),
+				],
+			]),
+		});
+		const { sessionId } = createSession(runtime);
+		runtime.live.require(sessionId).seed([
+			{ type: "turn", turn: turn("t1") },
+			{ type: "item", item: userMessage("u1", "first"), turnId: "t1" },
+			{
+				type: "item",
+				item: { ...agentMessage("a1", "working"), agentMessageId: "msg_1" },
+				turnId: "t1",
+			},
+			{
+				type: "item",
+				item: {
+					...agentMessage("sub:child:a1", "child reply"),
+					parentItemId: "subagent:child",
+					agentMessageId: "child_msg_1",
+				},
+				turnId: "t1",
+			},
+			{
+				type: "turn",
+				turn: turn("t1", { status: "completed", completedAtMs: 2 }),
+			},
+			{ type: "turn", turn: turn("t2", { startedAtMs: 3 }) },
+			{ type: "item", item: userMessage("u2", "second"), turnId: "t2" },
+			{
+				type: "turn",
+				turn: turn("t2", {
+					status: "completed",
+					startedAtMs: 3,
+					completedAtMs: 4,
+				}),
+			},
+		]);
+
+		await runtime.commands.rewindSession({
+			commandId: randomUUID(),
+			sessionId,
+			itemId: "u2",
+			prompt: "second, edited",
+			handoffPrompt: "earlier conversation",
+			cwd: "/tmp/workspace",
+		});
+
+		expect(cuts).toEqual(["msg_1"]);
+		await runtime.dispose();
+	});
+
 	test("rewindSession closes the session it opened when setting it up fails", async () => {
 		const reply = [
 			{ kind: "turn" as const, turn: turn("t1") },
