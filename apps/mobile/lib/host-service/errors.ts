@@ -1,3 +1,4 @@
+import { isMissingProcedureError as isMissingProcedure } from "@superset/shared/missing-procedure-error";
 import { TRPCClientError } from "@trpc/client";
 
 interface HostServiceErrorData {
@@ -16,4 +17,10 @@ export function isTrpcErrorWithData(
 	);
 }
 
-export { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
+export function isMissingProcedureError(error: unknown): boolean {
+	return (
+		error instanceof TRPCClientError &&
+		isMissingProcedure(error) &&
+		/on path/i.test(error.message)
+	);
+}
