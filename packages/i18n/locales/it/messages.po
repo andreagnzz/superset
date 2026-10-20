@@ -806,6 +806,9 @@ msgstr "{count, plural, one {Usata # fonte} other {Usate # fonti}}"
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {usato # strumento} other {usati # strumenti}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, one {in attesa di # sottoagente} other {in attesa di # sottoagenti}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count} star su GitHub"
 
@@ -972,6 +975,18 @@ msgstr "Tue automazioni con l'ultima esecuzione non riuscita: {myFailedCount}"
 msgid "{name} accounts"
 msgstr "Account {name}"
 
+msgid "{name} asks"
+msgstr "{name} chiede"
+
+msgid "{name} can't be messaged"
+msgstr "Impossibile inviare messaggi a {name}"
+
+msgid "{name} failed"
+msgstr "{name} non è riuscito"
+
+msgid "{name} finished"
+msgstr "{name} ha finito"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} è integrato e non può essere rimosso"
@@ -986,6 +1001,12 @@ msgstr "{name} non è aggiunto"
 
 msgid "{name} plugin"
 msgstr "Plugin {name}"
+
+msgid "{name} started working"
+msgstr "{name} ha iniziato a lavorare"
+
+msgid "{name} stopped"
+msgstr "{name} è stato interrotto"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Specifica almeno una persona, oppure scegli {choice}.} sender {Specifica almeno un mittente, oppure scegli {choice}.} other {Specifica almeno una voce, oppure scegli {choice}.}}"
@@ -1090,6 +1111,9 @@ msgstr "{selectedCount} selezionati"
 msgid "{share}% human"
 msgstr "{share}% umano"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, one {# shell} other {# shell}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} di {total}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {# automazione avviata} other {# automazioni avvia
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# sottoagente in esecuzione} other {# sottoagenti in esecuzione}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# sottoagente} other {# sottoagenti}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Creato # workspace, {failCount} non riusciti} other {Creati # workspace, {failCount} non riusciti}}"
@@ -2903,14 +2930,8 @@ msgstr "Sfondo"
 msgid "Background processes"
 msgstr "Processi in background"
 
-msgid "Background task"
-msgstr "Attività in background"
-
 msgid "Background terminal memory"
 msgstr "Memoria dei terminali in background"
-
-msgid "Background work and pages"
-msgstr "Attività in background e pagine"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -5212,6 +5233,9 @@ msgstr "Impossibile contrassegnare come pronta per la revisione"
 
 msgid "Couldn't merge pull request"
 msgstr "Impossibile unire la pull request"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "Impossibile spostare il sottoagente in background"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "Impossibile assegnare automaticamente un nome a \"{name}\""
@@ -7944,6 +7968,9 @@ msgstr "da"
 msgid "From"
 msgstr "Da"
 
+msgid "from {parentName}"
+msgstr "da {parentName}"
+
 msgid "from {price}/user/mo"
 msgstr "da {price}/utente/mese"
 
@@ -7952,6 +7979,9 @@ msgstr "Da progetto di hackathon allo spazio di lavoro per agenti di codice in p
 
 msgid "From GitHub"
 msgstr "Da GitHub"
+
+msgid "from main agent"
+msgstr "dall'agente principale"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter nascosto — passa a Markdown per modificarlo"
@@ -10221,6 +10251,9 @@ msgstr "Unione in corso…"
 msgid "Mesh Gradient"
 msgstr "Mesh Gradient"
 
+msgid "Message {name}…"
+msgstr "Messaggio per {name}…"
+
 msgid "Message in channel"
 msgstr "Messaggio in un canale"
 
@@ -10427,6 +10460,12 @@ msgstr "Quasi tutta la storia del software"
 msgid "Move {count} to Group"
 msgstr "Sposta {count} in un gruppo"
 
+msgid "Move {name} to background"
+msgstr "Sposta {name} in background"
+
+msgid "Move to background"
+msgstr "Sposta in background"
+
 msgid "Move to group"
 msgstr "Sposta in un gruppo"
 
@@ -10527,6 +10566,9 @@ msgstr "Da riprovare"
 
 msgid "Needs Action"
 msgstr "Richiede un'azione"
+
+msgid "needs approval"
+msgstr "richiede approvazione"
 
 msgid "Needs attention"
 msgstr "Richiede attenzione"
@@ -16397,8 +16439,8 @@ msgstr "Ferma {0}"
 msgid "Stop {label}"
 msgstr "Interrompi {label}"
 
-msgid "Stop all agent background processes"
-msgstr "Interrompi tutti i processi in background degli agenti"
+msgid "Stop {name}"
+msgstr "Interrompi {name}"
 
 msgid "Stop dictation"
 msgstr "Interrompi la dettatura"
@@ -17848,6 +17890,9 @@ msgstr "Questo slug è già in uso"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Questo ferma tutti i trigger di Teams nella tua organizzazione e rimuove le sottoscrizioni alle notifiche dal tuo tenant. Puoi ricollegarti in qualsiasi momento."
 
+msgid "This subagent can't move to the background now"
+msgstr "Questo sottoagente non può essere spostato in background ora"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Questo sottoagente non è più tracciato dall'host. La sua trascrizione resta su disco nella directory di sessione dell'agente."
 
@@ -17974,6 +18019,9 @@ msgstr "Titolo"
 
 msgid "To"
 msgstr "A"
+
+msgid "to {name}"
+msgstr "a {name}"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "Per riprendere una conversazione con un agente, esegui questo nella sua cartella:"
@@ -18610,6 +18658,12 @@ msgstr "Aggiorna Superset su questa macchina per allegare file"
 
 msgid "update the branch prefix"
 msgstr "aggiornare il prefisso dei branch"
+
+msgid "Update this host to message subagents"
+msgstr "Aggiorna questo host per inviare messaggi ai sottoagenti"
+
+msgid "Update this host to move subagents to the background"
+msgstr "Aggiorna questo host per spostare i sottoagenti in background"
 
 msgid "Updated"
 msgstr "Aggiornato"

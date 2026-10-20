@@ -23,7 +23,7 @@ import {
 	Monitor,
 	Smartphone,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
 	LuArrowDownToLine,
 	LuBot,
@@ -83,6 +83,7 @@ import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChangesListPane } from "./components/ChangesListPane";
 import { ChatPane } from "./components/ChatPane";
 import { ChatHistoryPicker } from "./components/ChatPane/components/ChatHistoryPicker";
+import { ChatPaneTitle } from "./components/ChatPaneTitle";
 import { CommentPane } from "./components/CommentPane";
 import { CommentPaneHeaderExtras } from "./components/CommentPane/components/CommentPaneHeaderExtras";
 import { CommentPaneTitle } from "./components/CommentPane/components/CommentPaneTitle";
@@ -237,6 +238,17 @@ export function usePaneRegistry({
 
 	const { createNewAgentSession, focusAgentTerminal } = useAgentSessionLauncher(
 		{ workspaceId, store },
+	);
+
+	const chatPaneIcon = useCallback(
+		({ agent, terminalId }: ChatPaneData) => (
+			<TerminalPaneIcon
+				agentId={agent?.id}
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+			/>
+		),
+		[workspaceId],
 	);
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
@@ -773,16 +785,7 @@ export function usePaneRegistry({
 				renderPane: () => <MobilePane />,
 			},
 			"chat-v3": {
-				getIcon: (ctx) => {
-					const { agent, terminalId } = ctx.pane.data as ChatPaneData;
-					return (
-						<TerminalPaneIcon
-							agentId={agent?.id}
-							workspaceId={workspaceId}
-							terminalId={terminalId}
-						/>
-					);
-				},
+				getIcon: (ctx) => chatPaneIcon(ctx.pane.data as ChatPaneData),
 				getTitle: () =>
 					t({
 						message: "Chat",
@@ -795,6 +798,17 @@ export function usePaneRegistry({
 					};
 				},
 				onAfterClose: closeChatWithUndo,
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => {
+					const data = ctx.pane.data as ChatPaneData;
+					return (
+						<ChatPaneTitle
+							chatKey={data.terminalId}
+							icon={chatPaneIcon(data)}
+							isActive={ctx.isActive}
+							title={ctx.pane.titleOverride ?? t({ message: "Chat" })}
+						/>
+					);
+				},
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as ChatPaneData;
 					return (
@@ -1001,6 +1015,7 @@ export function usePaneRegistry({
 			workspaceTrpcUtils,
 			t,
 			desktopUrl,
+			chatPaneIcon,
 			onOpenSubagent,
 		],
 	);

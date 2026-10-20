@@ -11,7 +11,7 @@ import { ChevronRight, CircleDashed } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { PluginIcon } from "renderer/components/PluginIcon";
-import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions";
+import { useTranscriptPlugins } from "../../providers/TranscriptPluginsProvider";
 import { toolTitle } from "../../utils/toolTitle";
 import { ToolContentList } from "../ToolContentList";
 import { FileChangeTitle } from "./components/FileChangeTitle";
@@ -33,7 +33,7 @@ export function ToolCallRow({ item }: { item: ToolCall }) {
 	const hasBody = item.content.length > 0;
 	const running = item.status === "running";
 	const command = item.toolKind === "execute";
-	const installedPlugins = usePluginMentionOptions();
+	const installedPlugins = useTranscriptPlugins();
 	const mcpServer = item.mcpServer;
 	const plugin = mcpServer
 		? installedPlugins.find((candidate) => candidate.name === mcpServer.name)

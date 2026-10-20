@@ -127,6 +127,7 @@ export type ComposerBodyProps = Required<
 		| "collapseLargePastes"
 		| "onSubmit"
 		| "onStop"
+		| "stopOnEscape"
 		| "onMentionHighlight"
 		| "onAttachmentClick"
 		| "onChipClick"
@@ -185,6 +186,7 @@ export function ComposerBody({
 	collapseLargePastes,
 	onSubmit,
 	onStop,
+	stopOnEscape = true,
 	onMentionHighlight,
 	onAttachmentClick,
 	onChipClick,
@@ -267,6 +269,10 @@ export function ComposerBody({
 			focus() {
 				focusAtEnd();
 			},
+			recallPreviousPrompt() {
+				editor.focus();
+				historyNavigationRef.current?.recallOlder();
+			},
 		}),
 		[draftText, editor, focusAtEnd, pasted.restore, splitPastes],
 	);
@@ -288,6 +294,7 @@ export function ComposerBody({
 		attachments,
 		onChipClick,
 		onStop,
+		stopOnEscape,
 		onSubmit,
 		status,
 		submitWhileStreaming,
@@ -299,6 +306,7 @@ export function ComposerBody({
 		attachments,
 		onChipClick,
 		onStop,
+		stopOnEscape,
 		onSubmit,
 		status,
 		submitWhileStreaming,
@@ -306,7 +314,10 @@ export function ComposerBody({
 		clearOnSubmit,
 		history,
 	};
-	const historyNavigationRef = useRef<{ reset: () => void } | null>(null);
+	const historyNavigationRef = useRef<{
+		recallOlder: () => void;
+		reset: () => void;
+	} | null>(null);
 
 	// A draft the host had stored. Read once: after mount the editor is the
 	// only writer, and re-applying would fight what is being typed.
@@ -578,8 +589,8 @@ export function ComposerBody({
 		const unregisterEscape = editor.registerCommand<KeyboardEvent | null>(
 			KEY_ESCAPE_COMMAND,
 			(event) => {
-				const { status, onStop } = stateRef.current;
-				if (status !== "streaming" || !onStop) return false;
+				const { status, onStop, stopOnEscape } = stateRef.current;
+				if (status !== "streaming" || !onStop || !stopOnEscape) return false;
 				event?.preventDefault();
 				onStop();
 				return true;

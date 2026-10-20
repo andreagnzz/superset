@@ -806,6 +806,9 @@ msgstr "{count, plural, one {使用了#個來源} other {使用了#個來源}}"
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {使用了 # 個工具} other {使用了 # 個工具}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, other {正在等待 # 個子代理程式}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count}個GitHub星標"
 
@@ -972,6 +975,18 @@ msgstr "你有{myFailedCount}個自動化上次執行失敗"
 msgid "{name} accounts"
 msgstr "{name} 帳號"
 
+msgid "{name} asks"
+msgstr "{name} 請求確認"
+
+msgid "{name} can't be messaged"
+msgstr "無法傳送訊息給 {name}"
+
+msgid "{name} failed"
+msgstr "{name} 失敗"
+
+msgid "{name} finished"
+msgstr "{name} 已完成"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} 是內建的，無法移除"
@@ -986,6 +1001,12 @@ msgstr "{name} 尚未新增"
 
 msgid "{name} plugin"
 msgstr "{name} 外掛程式"
+
+msgid "{name} started working"
+msgstr "{name} 開始工作"
+
+msgid "{name} stopped"
+msgstr "{name} 已停止"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {請至少指定一個人員，或選擇{choice}。} sender {請至少指定一個寄件者，或選擇{choice}。} other {請至少指定一個項目，或選擇{choice}。}}"
@@ -1090,6 +1111,9 @@ msgstr "已選擇{selectedCount}項"
 msgid "{share}% human"
 msgstr "人類{share}%"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, other {# 個 shell}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown}/{total}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {已啟動 # 個自動化} other {已啟動 # 個�
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 個子代理程式執行中}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# 個子代理程式}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {已建立#個工作區，{failCount}個失敗} other {已建立#個工作區，{failCount}個失敗}}"
@@ -2903,14 +2930,8 @@ msgstr "背景"
 msgid "Background processes"
 msgstr "背景處理程序"
 
-msgid "Background task"
-msgstr "背景工作"
-
 msgid "Background terminal memory"
 msgstr "背景終端記憶體"
-
-msgid "Background work and pages"
-msgstr "背景工作與頁面"
 
 msgid "Backlog"
 msgstr "待規劃"
@@ -5212,6 +5233,9 @@ msgstr "無法標記為可供審查"
 
 msgid "Couldn't merge pull request"
 msgstr "無法合併拉取請求"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "無法將子代理程式移到背景"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "無法自動命名「{name}」"
@@ -7944,6 +7968,9 @@ msgstr "基於"
 msgid "From"
 msgstr "從"
 
+msgid "from {parentName}"
+msgstr "來自 {parentName}"
+
 msgid "from {price}/user/mo"
 msgstr "{price}/使用者/月起"
 
@@ -7952,6 +7979,9 @@ msgstr "從一個黑客松專案，到平行程式設計代理的工作空間。
 
 msgid "From GitHub"
 msgstr "來自 GitHub"
+
+msgid "from main agent"
+msgstr "來自主代理程式"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "已隱藏front matter，切換到Markdown可編輯"
@@ -10221,6 +10251,9 @@ msgstr "正在合併…"
 msgid "Mesh Gradient"
 msgstr "網格漸變"
 
+msgid "Message {name}…"
+msgstr "傳訊息給 {name}…"
+
 msgid "Message in channel"
 msgstr "頻道中的訊息"
 
@@ -10427,6 +10460,12 @@ msgstr "軟體史的大部分時間"
 msgid "Move {count} to Group"
 msgstr "將{count}個移動到群組"
 
+msgid "Move {name} to background"
+msgstr "將 {name} 移到背景"
+
+msgid "Move to background"
+msgstr "移到背景"
+
 msgid "Move to group"
 msgstr "移動到群組"
 
@@ -10527,6 +10566,9 @@ msgstr "需要重試"
 
 msgid "Needs Action"
 msgstr "需要處理"
+
+msgid "needs approval"
+msgstr "需要核准"
 
 msgid "Needs attention"
 msgstr "需要處理"
@@ -16397,8 +16439,8 @@ msgstr "停止{0}"
 msgid "Stop {label}"
 msgstr "停止 {label}"
 
-msgid "Stop all agent background processes"
-msgstr "停止所有代理程式背景處理程序"
+msgid "Stop {name}"
+msgstr "停止 {name}"
 
 msgid "Stop dictation"
 msgstr "停止語音輸入"
@@ -17848,6 +17890,9 @@ msgstr "此slug已被佔用"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "這會停止你組織中所有的Teams觸發器，並從你的租戶中移除通知訂閱。你可以隨時重新連線。"
 
+msgid "This subagent can't move to the background now"
+msgstr "此子代理程式目前無法移到背景"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "主機已不再追蹤此子代理程式。其逐字稿仍保留在磁碟上的代理程式工作階段目錄中。"
 
@@ -17974,6 +18019,9 @@ msgstr "標題"
 
 msgid "To"
 msgstr "到"
+
+msgid "to {name}"
+msgstr "傳給 {name}"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "若要恢復與代理的對話，請在其資料夾中執行："
@@ -18610,6 +18658,12 @@ msgstr "請在這臺機器上更新Superset以附加檔案"
 
 msgid "update the branch prefix"
 msgstr "更新分支字首"
+
+msgid "Update this host to message subagents"
+msgstr "請更新此主機以傳送訊息給子代理程式"
+
+msgid "Update this host to move subagents to the background"
+msgstr "請更新此主機以將子代理程式移到背景"
 
 msgid "Updated"
 msgstr "已更新"

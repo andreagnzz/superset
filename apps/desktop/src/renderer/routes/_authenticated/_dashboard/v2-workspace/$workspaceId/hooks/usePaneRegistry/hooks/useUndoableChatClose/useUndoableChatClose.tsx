@@ -15,6 +15,7 @@ import {
 	removePendingChatStop,
 } from "../../../../utils/pendingChatStops";
 import { useChatWiring } from "../../components/ChatSession/hooks/useSessionClient";
+import { useChatSubagentStore } from "../../stores/chatSubagentStore";
 import { ChatClosedToast } from "./components/ChatClosedToast";
 import { createClosedChatBatches } from "./utils/closedChatBatches";
 
@@ -115,7 +116,12 @@ export function useUndoableChatClose({
 				if (chat.slot) state.insertTab(chat.slot);
 				else state.addTab({ panes: [chat.pane] });
 			},
-			stop: (chat) => stopSession(chat.sessionId),
+			stop: (chat) => {
+				stopSession(chat.sessionId);
+				useChatSubagentStore
+					.getState()
+					.forget((chat.pane.data as ChatPaneData).terminalId);
+			},
 		});
 		return { closed, stopSession };
 	});

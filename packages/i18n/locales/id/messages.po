@@ -806,6 +806,9 @@ msgstr "{count, plural, one {Memakai # sumber} other {Memakai # sumber}}"
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {menggunakan # alat} other {menggunakan # alat}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, other {menunggu # subagen}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count} star GitHub"
 
@@ -972,6 +975,18 @@ msgstr "{myFailedCount} otomatisasi Anda gagal pada run terakhirnya"
 msgid "{name} accounts"
 msgstr "Akun {name}"
 
+msgid "{name} asks"
+msgstr "{name} bertanya"
+
+msgid "{name} can't be messaged"
+msgstr "{name} tidak bisa dikirimi pesan"
+
+msgid "{name} failed"
+msgstr "{name} gagal"
+
+msgid "{name} finished"
+msgstr "{name} selesai"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} bawaan dan tidak dapat dihapus"
@@ -986,6 +1001,12 @@ msgstr "{name} belum ditambahkan"
 
 msgid "{name} plugin"
 msgstr "Plugin {name}"
+
+msgid "{name} started working"
+msgstr "{name} mulai bekerja"
+
+msgid "{name} stopped"
+msgstr "{name} dihentikan"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Tentukan minimal satu orang, atau pilih {choice}.} sender {Tentukan minimal satu pengirim, atau pilih {choice}.} other {Tentukan minimal satu entri, atau pilih {choice}.}}"
@@ -1090,6 +1111,9 @@ msgstr "{selectedCount} dipilih"
 msgid "{share}% human"
 msgstr "{share}% manusia"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, other {# shell}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} dari {total}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {# otomatisasi dimulai} other {# otomatisasi dimul
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# subagen berjalan}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# subagen}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Membuat # workspace, {failCount} gagal} other {Membuat # workspace, {failCount} gagal}}"
@@ -2903,14 +2930,8 @@ msgstr "Latar belakang"
 msgid "Background processes"
 msgstr "Proses latar belakang"
 
-msgid "Background task"
-msgstr "Tugas latar belakang"
-
 msgid "Background terminal memory"
 msgstr "Memori terminal latar belakang"
-
-msgid "Background work and pages"
-msgstr "Pekerjaan latar belakang dan halaman"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -5212,6 +5233,9 @@ msgstr "Tidak dapat menandai siap ditinjau"
 
 msgid "Couldn't merge pull request"
 msgstr "Tidak bisa merge pull request"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "Tidak dapat memindahkan subagen ke latar belakang"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "Tidak dapat menamai \"{name}\" secara otomatis"
@@ -7944,6 +7968,9 @@ msgstr "dari"
 msgid "From"
 msgstr "Dari"
 
+msgid "from {parentName}"
+msgstr "dari {parentName}"
+
 msgid "from {price}/user/mo"
 msgstr "mulai {price}/pengguna/bln"
 
@@ -7952,6 +7979,9 @@ msgstr "Dari proyek hackathon menjadi workspace untuk agen coding paralel."
 
 msgid "From GitHub"
 msgstr "Dari GitHub"
+
+msgid "from main agent"
+msgstr "dari agen utama"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter disembunyikan — beralih ke Markdown untuk mengeditnya"
@@ -10221,6 +10251,9 @@ msgstr "Melakukan merge…"
 msgid "Mesh Gradient"
 msgstr "Mesh Gradient"
 
+msgid "Message {name}…"
+msgstr "Pesan untuk {name}…"
+
 msgid "Message in channel"
 msgstr "Pesan di channel"
 
@@ -10427,6 +10460,12 @@ msgstr "Sebagian besar sejarah perangkat lunak"
 msgid "Move {count} to Group"
 msgstr "Pindahkan {count} ke Grup"
 
+msgid "Move {name} to background"
+msgstr "Pindahkan {name} ke latar belakang"
+
+msgid "Move to background"
+msgstr "Pindahkan ke latar belakang"
+
 msgid "Move to group"
 msgstr "Pindahkan ke grup"
 
@@ -10527,6 +10566,9 @@ msgstr "Perlu dicoba ulang"
 
 msgid "Needs Action"
 msgstr "Perlu Tindakan"
+
+msgid "needs approval"
+msgstr "perlu persetujuan"
 
 msgid "Needs attention"
 msgstr "Perlu perhatian"
@@ -16397,8 +16439,8 @@ msgstr "Hentikan {0}"
 msgid "Stop {label}"
 msgstr "Hentikan {label}"
 
-msgid "Stop all agent background processes"
-msgstr "Hentikan semua proses latar belakang agen"
+msgid "Stop {name}"
+msgstr "Hentikan {name}"
 
 msgid "Stop dictation"
 msgstr "Hentikan dikte"
@@ -17848,6 +17890,9 @@ msgstr "Slug ini sudah dipakai"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Ini menghentikan setiap pemicu Teams di organisasi Anda dan menghapus langganan notifikasi dari tenant Anda. Anda bisa menghubungkan ulang kapan saja."
 
+msgid "This subagent can't move to the background now"
+msgstr "Subagen ini tidak bisa dipindahkan ke latar belakang sekarang"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Subagen ini tidak lagi dilacak oleh host. Transkripnya tetap tersimpan di disk pada direktori sesi agen."
 
@@ -17974,6 +18019,9 @@ msgstr "Judul"
 
 msgid "To"
 msgstr "Ke"
+
+msgid "to {name}"
+msgstr "ke {name}"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "Untuk melanjutkan percakapan agen, jalankan ini di foldernya:"
@@ -18610,6 +18658,12 @@ msgstr "Perbarui Superset di mesin ini untuk melampirkan file"
 
 msgid "update the branch prefix"
 msgstr "memperbarui prefix branch"
+
+msgid "Update this host to message subagents"
+msgstr "Perbarui host ini untuk mengirim pesan ke subagen"
+
+msgid "Update this host to move subagents to the background"
+msgstr "Perbarui host ini untuk memindahkan subagen ke latar belakang"
 
 msgid "Updated"
 msgstr "Diperbarui"

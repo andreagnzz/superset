@@ -3,6 +3,7 @@ import { acpHarnessForPreset } from "@superset/chat/core";
 import type { DiscoverSessionsResult } from "@superset/chat/protocol";
 import { formatCompactRelativeTime } from "@superset/i18n/format";
 import type { RendererContext, WorkspaceStore } from "@superset/panes";
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -10,7 +11,6 @@ import { useWorkspaceClient } from "@superset/workspace-client";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Check, History, LoaderCircle } from "lucide-react";
 import { useState } from "react";
-import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import type {
 	ChatPaneData,
 	PaneViewerData,

@@ -806,6 +806,9 @@ msgstr "{count, plural, one {Đã dùng # nguồn} other {Đã dùng # nguồn}}
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {đã dùng # công cụ} other {đã dùng # công cụ}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, other {đang chờ # agent con}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count} star GitHub"
 
@@ -972,6 +975,18 @@ msgstr "{myFailedCount} tự động hóa của bạn thất bại ở lần ch�
 msgid "{name} accounts"
 msgstr "Tài khoản {name}"
 
+msgid "{name} asks"
+msgstr "{name} hỏi"
+
+msgid "{name} can't be messaged"
+msgstr "Không thể nhắn tin cho {name}"
+
+msgid "{name} failed"
+msgstr "{name} đã thất bại"
+
+msgid "{name} finished"
+msgstr "{name} đã xong"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} là tích hợp sẵn nên không thể gỡ"
@@ -986,6 +1001,12 @@ msgstr "{name} chưa được thêm"
 
 msgid "{name} plugin"
 msgstr "Plugin {name}"
+
+msgid "{name} started working"
+msgstr "{name} đã bắt đầu làm việc"
+
+msgid "{name} stopped"
+msgstr "{name} đã dừng"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, hoặc chọn {choice}.} sender {Hãy chỉ định ít nhất một người gửi, hoặc chọn {choice}.} other {Hãy chỉ định ít nhất một mục, hoặc chọn {choice}.}}"
@@ -1090,6 +1111,9 @@ msgstr "Đã chọn {selectedCount}"
 msgid "{share}% human"
 msgstr "{share}% con người"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, other {# shell}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} trong {total}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {Đã khởi chạy # tự động hóa} other {Đ
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# agent con đang chạy}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# agent con}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Đã tạo # workspace, {failCount} thất bại} other {Đã tạo # workspace, {failCount} thất bại}}"
@@ -2903,14 +2930,8 @@ msgstr "Nền"
 msgid "Background processes"
 msgstr "Tiến trình nền"
 
-msgid "Background task"
-msgstr "Tác vụ nền"
-
 msgid "Background terminal memory"
 msgstr "Bộ nhớ terminal chạy nền"
-
-msgid "Background work and pages"
-msgstr "Tác vụ nền và trang"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -5212,6 +5233,9 @@ msgstr "Không thể đánh dấu sẵn sàng để review"
 
 msgid "Couldn't merge pull request"
 msgstr "Không thể merge pull request"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "Không thể chuyển agent con sang chạy nền"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "Không thể tự động đặt tên cho \"{name}\""
@@ -7944,6 +7968,9 @@ msgstr "từ"
 msgid "From"
 msgstr "Từ"
 
+msgid "from {parentName}"
+msgstr "từ {parentName}"
+
 msgid "from {price}/user/mo"
 msgstr "từ {price}/người/tháng"
 
@@ -7952,6 +7979,9 @@ msgstr "Từ một dự án hackathon đến không gian làm việc cho các ag
 
 msgid "From GitHub"
 msgstr "Từ GitHub"
+
+msgid "from main agent"
+msgstr "từ agent chính"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter đang ẩn — chuyển sang Markdown để sửa"
@@ -10221,6 +10251,9 @@ msgstr "Đang merge…"
 msgid "Mesh Gradient"
 msgstr "Mesh Gradient"
 
+msgid "Message {name}…"
+msgstr "Nhắn cho {name}…"
+
 msgid "Message in channel"
 msgstr "Tin nhắn trong kênh"
 
@@ -10427,6 +10460,12 @@ msgstr "Gần như suốt lịch sử phần mềm"
 msgid "Move {count} to Group"
 msgstr "Chuyển {count} vào nhóm"
 
+msgid "Move {name} to background"
+msgstr "Chuyển {name} sang chạy nền"
+
+msgid "Move to background"
+msgstr "Chuyển sang chạy nền"
+
 msgid "Move to group"
 msgstr "Chuyển vào nhóm"
 
@@ -10527,6 +10566,9 @@ msgstr "Cần chạy lại"
 
 msgid "Needs Action"
 msgstr "Cần xử lý"
+
+msgid "needs approval"
+msgstr "cần phê duyệt"
 
 msgid "Needs attention"
 msgstr "Cần chú ý"
@@ -16397,8 +16439,8 @@ msgstr "Dừng {0}"
 msgid "Stop {label}"
 msgstr "Dừng {label}"
 
-msgid "Stop all agent background processes"
-msgstr "Dừng tất cả tiến trình nền của tác tử"
+msgid "Stop {name}"
+msgstr "Dừng {name}"
 
 msgid "Stop dictation"
 msgstr "Dừng đọc chính tả"
@@ -17848,6 +17890,9 @@ msgstr "Slug này đã có người dùng"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Thao tác này dừng mọi trigger Teams trong tổ chức của bạn và gỡ các đăng ký thông báo khỏi tenant. Bạn có thể kết nối lại bất cứ lúc nào."
 
+msgid "This subagent can't move to the background now"
+msgstr "Không thể chuyển agent con này sang chạy nền lúc này"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Máy chủ không còn theo dõi agent con này. Bản ghi vẫn nằm trên đĩa trong thư mục phiên của agent."
 
@@ -17974,6 +18019,9 @@ msgstr "Tiêu đề"
 
 msgid "To"
 msgstr "Đến"
+
+msgid "to {name}"
+msgstr "tới {name}"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "Để tiếp tục một cuộc trò chuyện với agent, hãy chạy lệnh này trong thư mục của nó:"
@@ -18610,6 +18658,12 @@ msgstr "Hãy cập nhật Superset trên máy này để đính kèm tệp"
 
 msgid "update the branch prefix"
 msgstr "cập nhật tiền tố nhánh"
+
+msgid "Update this host to message subagents"
+msgstr "Cập nhật máy chủ này để nhắn tin cho agent con"
+
+msgid "Update this host to move subagents to the background"
+msgstr "Cập nhật máy chủ này để chuyển agent con sang chạy nền"
 
 msgid "Updated"
 msgstr "Đã cập nhật"

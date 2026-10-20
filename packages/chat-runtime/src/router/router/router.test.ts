@@ -230,6 +230,81 @@ describe("createChatRouter", () => {
 		await runtime.dispose();
 	});
 
+	test("steerSubagent routes to the live session", async () => {
+		const { harnesses, adapters } = fakeHarnessRegistry({
+			...SCRIPT,
+			steerableSubagents: ["subagent:child-1"],
+		});
+		const runtime = createTestRuntime({ harnesses });
+		const caller = createChatCallerFactory(
+			createChatRouter(runtime, {
+				resolveCwd: () => mkdtempSync(join(tmpdir(), "chat-router-cwd-")),
+			}),
+		)({});
+		const created = await caller.createSession(createSessionInput());
+		const content = [{ type: "text" as const, text: "check the tests too" }];
+
+		expect(
+			await caller.steerSubagent({
+				commandId: randomUUID(),
+				sessionId: created.sessionId,
+				taskId: "subagent:child-1",
+				content,
+			}),
+		).toEqual({ result: "steered" });
+		expect(
+			await caller.steerSubagent({
+				commandId: randomUUID(),
+				sessionId: created.sessionId,
+				taskId: "subagent:child-2",
+				content,
+			}),
+		).toEqual({ result: "finished" });
+		expect(adapters[0]?.steeredSubagents).toEqual([
+			{ taskId: "subagent:child-1", content },
+		]);
+		await expect(
+			caller.steerSubagent({
+				commandId: randomUUID(),
+				sessionId: created.sessionId,
+				taskId: "subagent:child-1",
+				content: [],
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		await runtime.dispose();
+	});
+
+	test("backgroundSubagent routes to the live session", async () => {
+		const { harnesses, adapters } = fakeHarnessRegistry({
+			...SCRIPT,
+			backgroundableSubagents: ["subagent:child-1"],
+		});
+		const runtime = createTestRuntime({ harnesses });
+		const caller = createChatCallerFactory(
+			createChatRouter(runtime, {
+				resolveCwd: () => mkdtempSync(join(tmpdir(), "chat-router-cwd-")),
+			}),
+		)({});
+		const created = await caller.createSession(createSessionInput());
+
+		expect(
+			await caller.backgroundSubagent({
+				commandId: randomUUID(),
+				sessionId: created.sessionId,
+				taskId: "subagent:child-1",
+			}),
+		).toEqual({ result: "moved" });
+		expect(
+			await caller.backgroundSubagent({
+				commandId: randomUUID(),
+				sessionId: created.sessionId,
+				taskId: "subagent:child-2",
+			}),
+		).toEqual({ result: "refused" });
+		expect(adapters[0]?.backgroundedSubagents).toEqual(["subagent:child-1"]);
+		await runtime.dispose();
+	});
+
 	test("discoverSessions reports an unknown harness", async () => {
 		const { runtime, caller } = newCaller();
 		await expect(

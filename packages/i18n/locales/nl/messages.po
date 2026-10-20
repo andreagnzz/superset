@@ -806,6 +806,9 @@ msgstr "{count, plural, one {# bron gebruikt} other {# bronnen gebruikt}}"
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {# tool gebruikt} other {# tools gebruikt}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, one {wacht op # subagent} other {wacht op # subagents}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count} GitHub-sterren"
 
@@ -972,6 +975,18 @@ msgstr "Bij {myFailedCount} van je automatiseringen is de laatste run mislukt"
 msgid "{name} accounts"
 msgstr "{name}-accounts"
 
+msgid "{name} asks"
+msgstr "{name} vraagt"
+
+msgid "{name} can't be messaged"
+msgstr "{name} kan geen berichten ontvangen"
+
+msgid "{name} failed"
+msgstr "{name} is mislukt"
+
+msgid "{name} finished"
+msgstr "{name} is klaar"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} is ingebouwd en kan niet worden verwijderd"
@@ -986,6 +1001,12 @@ msgstr "{name} is niet toegevoegd"
 
 msgid "{name} plugin"
 msgstr "Plug-in {name}"
+
+msgid "{name} started working"
+msgstr "{name} is begonnen"
+
+msgid "{name} stopped"
+msgstr "{name} is gestopt"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Geef minstens één persoon op, of kies {choice}.} sender {Geef minstens één afzender op, of kies {choice}.} other {Geef minstens één item op, of kies {choice}.}}"
@@ -1090,6 +1111,9 @@ msgstr "{selectedCount} geselecteerd"
 msgid "{share}% human"
 msgstr "{share}% mens"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, one {# shell} other {# shells}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} van {total}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {# automatisering gestart} other {# automatisering
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent actief} other {# subagents actief}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# subagent} other {# subagents}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# werkruimte aangemaakt, {failCount} mislukt} other {# werkruimtes aangemaakt, {failCount} mislukt}}"
@@ -2903,14 +2930,8 @@ msgstr "Achtergrond"
 msgid "Background processes"
 msgstr "Achtergrondprocessen"
 
-msgid "Background task"
-msgstr "Achtergrondtaak"
-
 msgid "Background terminal memory"
 msgstr "Geheugen voor terminals op de achtergrond"
-
-msgid "Background work and pages"
-msgstr "Achtergrondwerk en pagina's"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -5212,6 +5233,9 @@ msgstr "Kon niet markeren als klaar voor review"
 
 msgid "Couldn't merge pull request"
 msgstr "Kan pull request niet mergen"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "Kan de subagent niet naar de achtergrond verplaatsen"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "Kon \"{name}\" niet automatisch een naam geven"
@@ -7944,6 +7968,9 @@ msgstr "vanaf"
 msgid "From"
 msgstr "Van"
 
+msgid "from {parentName}"
+msgstr "van {parentName}"
+
 msgid "from {price}/user/mo"
 msgstr "vanaf {price}/gebruiker/mnd"
 
@@ -7952,6 +7979,9 @@ msgstr "Van hackathonproject tot de werkplek voor parallelle coding agents."
 
 msgid "From GitHub"
 msgstr "Van GitHub"
+
+msgid "from main agent"
+msgstr "van de hoofdagent"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter verborgen — schakel over naar Markdown om die te bewerken"
@@ -10221,6 +10251,9 @@ msgstr "Bezig met mergen…"
 msgid "Mesh Gradient"
 msgstr "Mesh Gradient"
 
+msgid "Message {name}…"
+msgstr "Bericht aan {name}…"
+
 msgid "Message in channel"
 msgstr "Bericht in kanaal"
 
@@ -10427,6 +10460,12 @@ msgstr "Het grootste deel van de softwaregeschiedenis"
 msgid "Move {count} to Group"
 msgstr "{count} naar groep verplaatsen"
 
+msgid "Move {name} to background"
+msgstr "{name} naar de achtergrond verplaatsen"
+
+msgid "Move to background"
+msgstr "Naar de achtergrond"
+
 msgid "Move to group"
 msgstr "Naar groep verplaatsen"
 
@@ -10527,6 +10566,9 @@ msgstr "Moet opnieuw worden geprobeerd"
 
 msgid "Needs Action"
 msgstr "Actie nodig"
+
+msgid "needs approval"
+msgstr "wacht op goedkeuring"
 
 msgid "Needs attention"
 msgstr "Vraagt aandacht"
@@ -16397,8 +16439,8 @@ msgstr "{0} stoppen"
 msgid "Stop {label}"
 msgstr "{label} stoppen"
 
-msgid "Stop all agent background processes"
-msgstr "Alle achtergrondprocessen van agents stoppen"
+msgid "Stop {name}"
+msgstr "{name} stoppen"
 
 msgid "Stop dictation"
 msgstr "Dicteren stoppen"
@@ -17848,6 +17890,9 @@ msgstr "Deze slug is al bezet"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Hiermee stoppen alle Teams-triggers in je organisatie en worden de meldingsabonnementen uit je tenant verwijderd. Je kunt op elk moment opnieuw verbinden."
 
+msgid "This subagent can't move to the background now"
+msgstr "Deze subagent kan nu niet naar de achtergrond"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Deze subagent wordt niet meer gevolgd door de host. Het transcript blijft op schijf in de sessiemap van de agent."
 
@@ -17974,6 +18019,9 @@ msgstr "Titel"
 
 msgid "To"
 msgstr "Naar"
+
+msgid "to {name}"
+msgstr "aan {name}"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "Voer dit uit in de map om een agentgesprek te hervatten:"
@@ -18610,6 +18658,12 @@ msgstr "Werk Superset op deze machine bij om bestanden toe te voegen"
 
 msgid "update the branch prefix"
 msgstr "de branchprefix bijwerken"
+
+msgid "Update this host to message subagents"
+msgstr "Werk deze host bij om subagents berichten te sturen"
+
+msgid "Update this host to move subagents to the background"
+msgstr "Werk deze host bij om subagents naar de achtergrond te verplaatsen"
 
 msgid "Updated"
 msgstr "Bijgewerkt"

@@ -60,6 +60,7 @@ export function transcriptRows(
 	pendingApprovalTargets: ReadonlySet<string>,
 	findPageLinks: PageLinkFinder,
 	hiddenToolIds: ReadonlySet<string> = new Set(),
+	standaloneTool: (tool: ToolCall) => boolean = () => false,
 ): TranscriptRow[] {
 	const rows: TranscriptRow[] = [];
 	const echoedClientIds = new Set<string>();
@@ -89,7 +90,7 @@ export function transcriptRows(
 		const lastPrompt = group.entries.findLastIndex(
 			(entry) => entry.kind === "item" && entry.item.kind === "user_message",
 		);
-		let run: Extract<TranscriptRow, { kind: "tool_run" }> | null = null;
+		let run = null as Extract<TranscriptRow, { kind: "tool_run" }> | null;
 		let runAt = -1;
 		const unwrapLoneCall = () => {
 			const only = run?.steps.length === 1 ? run.items[0] : undefined;
@@ -101,6 +102,62 @@ export function transcriptRows(
 				item: only,
 				...(run.pages ? { pages: run.pages } : {}),
 			};
+		};
+		const pushItem = (item: Item) => {
+			unwrapLoneCall();
+			run = null;
+			const clientId =
+				item.kind === "user_message"
+					? (item as UserMessage).clientId
+					: undefined;
+			if (clientId) echoedClientIds.add(clientId);
+			const pages = links.fromTools.get(item.id);
+			const pagesShownEarlier = links.shownEarlier.get(item.id);
+			const targetId =
+				item.kind === "approval_request"
+					? (item as ApprovalRequest).targetItemId
+					: null;
+			const above = groupStart ? undefined : rows.at(-1);
+			const afterTarget =
+				targetId !== null &&
+				((above?.kind === "item" && above.item.id === targetId) ||
+					(above?.kind === "tool_run" && above.items.at(-1)?.id === targetId));
+			push({
+				kind: "item",
+				key: transcriptItemKey(item),
+				groupStart,
+				item,
+				...(pages ? { pages } : {}),
+				...(pagesShownEarlier ? { pagesShownEarlier } : {}),
+				...(afterTarget ? { afterTarget } : {}),
+			});
+		};
+		const addTools = (
+			items: ToolCall[],
+			keyTools: readonly ToolCall[],
+			index: number,
+		) => {
+			if (items.length === 0) return;
+			const pages = items.flatMap((tool) => links.fromTools.get(tool.id) ?? []);
+			const waiting = items.some((tool) => pendingApprovalTargets.has(tool.id));
+			if (run) {
+				run.items.push(...items);
+				run.steps.push(...items);
+				if (waiting) run.defaultCollapsed = false;
+				if (pages.length > 0) run.pages = [...(run.pages ?? []), ...pages];
+				return;
+			}
+			run = {
+				kind: "tool_run",
+				key: toolRunKey(group.turnId, keyTools, index),
+				groupStart,
+				items: [...items],
+				steps: [...items],
+				defaultCollapsed: !waiting,
+				...(pages.length > 0 ? { pages } : {}),
+			};
+			runAt = rows.length;
+			push(run);
 		};
 		for (const [index, entry] of group.entries.entries()) {
 			if (index > lastPrompt) placeClock();
@@ -116,59 +173,27 @@ export function transcriptRows(
 					run.steps.push(entry.item);
 					continue;
 				}
-				unwrapLoneCall();
-				run = null;
-				const clientId =
-					entry.item.kind === "user_message"
-						? (entry.item as UserMessage).clientId
-						: undefined;
-				if (clientId) echoedClientIds.add(clientId);
-				const pages = links.fromTools.get(entry.item.id);
-				const pagesShownEarlier = links.shownEarlier.get(entry.item.id);
-				const targetId =
-					entry.item.kind === "approval_request"
-						? (entry.item as ApprovalRequest).targetItemId
-						: null;
-				const above = groupStart ? undefined : rows.at(-1);
-				const afterTarget =
-					targetId !== null &&
-					((above?.kind === "item" && above.item.id === targetId) ||
-						(above?.kind === "tool_run" &&
-							above.items.at(-1)?.id === targetId));
-				push({
-					kind: "item",
-					key: transcriptItemKey(entry.item),
-					groupStart,
-					item: entry.item,
-					...(pages ? { pages } : {}),
-					...(pagesShownEarlier ? { pagesShownEarlier } : {}),
-					...(afterTarget ? { afterTarget } : {}),
-				});
+				pushItem(entry.item);
 				continue;
 			}
 			if (!tools) continue;
-			const items = tools.filter((tool) => !hiddenToolIds.has(tool.id));
-			if (items.length === 0) continue;
-			const pages = items.flatMap((tool) => links.fromTools.get(tool.id) ?? []);
-			const waiting = items.some((tool) => pendingApprovalTargets.has(tool.id));
-			if (run) {
-				run.items.push(...items);
-				run.steps.push(...items);
-				if (waiting) run.defaultCollapsed = false;
-				if (pages.length > 0) run.pages = [...(run.pages ?? []), ...pages];
+			const visible = tools.filter((tool) => !hiddenToolIds.has(tool.id));
+			if (visible.length === 0) continue;
+			if (!visible.some(standaloneTool)) {
+				addTools(visible, tools, index);
 				continue;
 			}
-			run = {
-				kind: "tool_run",
-				key: toolRunKey(group.turnId, tools, index),
-				groupStart,
-				items: [...items],
-				steps: [...items],
-				defaultCollapsed: !waiting,
-				...(pages.length > 0 ? { pages } : {}),
-			};
-			runAt = rows.length;
-			push(run);
+			let chunk: ToolCall[] = [];
+			for (const tool of visible) {
+				if (!standaloneTool(tool)) {
+					chunk.push(tool);
+					continue;
+				}
+				addTools(chunk, chunk, index);
+				chunk = [];
+				pushItem(tool);
+			}
+			addTools(chunk, chunk, index);
 		}
 		unwrapLoneCall();
 		placeClock();

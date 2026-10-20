@@ -91,3 +91,21 @@ test("text recovered after a composer read its draft is handed to it once", () =
 	expect(reader.result.current.storedDraft).toBe("unsent message");
 	expect(takeRecoveredDraftText("chat-v3-draft:early")).toBeNull();
 });
+
+test("text recovered while another target is open shows once on return", () => {
+	const hook = renderHook(
+		({ draftKey, persisted }: { draftKey: string; persisted: boolean }) =>
+			useComposerDraft(draftKey, persisted),
+		{ initialProps: { draftKey: "chat-v3-draft:return", persisted: true } },
+	);
+	hook.rerender({
+		draftKey: "chat-v3-draft:return:subagent:c1",
+		persisted: false,
+	});
+	prependToDraft("chat-v3-draft:return", ["unsent message"]);
+
+	hook.rerender({ draftKey: "chat-v3-draft:return", persisted: true });
+
+	expect(hook.result.current.storedDraft).toBe("unsent message");
+	expect(takeRecoveredDraftText("chat-v3-draft:return")).toBeNull();
+});

@@ -11,6 +11,7 @@ import {
 import type {
 	AgentMessage,
 	ApprovalRequest,
+	BackgroundSubagentInput,
 	CancelTurnInput,
 	CloseSessionInput,
 	Cursor,
@@ -24,9 +25,11 @@ import type {
 	ResumeQueueInput,
 	SetConfigOptionInput,
 	SetModeInput,
+	SteerSubagentInput,
 	StopBackgroundTaskInput,
 } from "@superset/chat/protocol";
 import {
+	backgroundSubagentInputSchema,
 	cancelTurnInputSchema,
 	closeSessionInputSchema,
 	createSessionInputSchema,
@@ -44,6 +47,7 @@ import {
 	rewindSessionInputSchema,
 	setConfigOptionInputSchema,
 	setModeInputSchema,
+	steerSubagentInputSchema,
 	stopBackgroundTaskInputSchema,
 } from "@superset/chat/protocol";
 import { z } from "zod";
@@ -176,6 +180,8 @@ export type ChatCommands = {
 	resumeQueue(input: ResumeQueueInput): void;
 	cancelTurn(input: CancelTurnInput): void;
 	stopBackgroundTask(input: StopBackgroundTaskInput): Promise<boolean>;
+	steerSubagent(input: SteerSubagentInput): Promise<boolean>;
+	backgroundSubagent(input: BackgroundSubagentInput): Promise<boolean>;
 	respondToApproval(input: RespondToApprovalInput): void;
 	setMode(input: SetModeInput): void;
 	setConfigOption(input: SetConfigOptionInput): void;
@@ -371,6 +377,25 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 				options.live
 					.require(parsed.sessionId)
 					.stopBackgroundTask(parsed.taskId),
+			);
+		},
+
+		steerSubagent(input) {
+			const parsed: SteerSubagentInput = steerSubagentInputSchema.parse(input);
+			return options.dedupe.run(`steerSubagent:${parsed.commandId}`, () =>
+				options.live
+					.require(parsed.sessionId)
+					.steerSubagent(parsed.taskId, parsed.content),
+			);
+		},
+
+		backgroundSubagent(input) {
+			const parsed: BackgroundSubagentInput =
+				backgroundSubagentInputSchema.parse(input);
+			return options.dedupe.run(`backgroundSubagent:${parsed.commandId}`, () =>
+				options.live
+					.require(parsed.sessionId)
+					.backgroundSubagent(parsed.taskId),
 			);
 		},
 

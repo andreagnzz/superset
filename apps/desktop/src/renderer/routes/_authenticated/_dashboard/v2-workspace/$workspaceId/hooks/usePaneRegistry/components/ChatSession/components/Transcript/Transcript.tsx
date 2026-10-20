@@ -30,7 +30,6 @@ import {
 	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
-import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions";
 import {
 	CHAT_COLUMN_CLASSNAME,
 	CHAT_SCROLLER_GUTTER_CLASSNAME,
@@ -46,9 +45,12 @@ import { useScrollbarGutter } from "./hooks/useScrollbarGutter";
 import { useTranscriptFind } from "./hooks/useTranscriptFind";
 import { useTranscriptWindow } from "./hooks/useTranscriptWindow";
 import { ChatImageGalleryProvider } from "./providers/ChatImageGalleryProvider";
+import { useNestedItems } from "./providers/NestedItemsProvider";
+import { useTranscriptPlugins } from "./providers/TranscriptPluginsProvider";
 import { copySourceText } from "./utils/copySourceText";
 import { galleryImages } from "./utils/galleryImages";
 import { lastReplyKeys } from "./utils/lastReplyKeys";
+import { subagentLines } from "./utils/subagentLines";
 import {
 	rowMessageId,
 	type TranscriptRow,
@@ -128,7 +130,7 @@ export function Transcript({
 	snapshot,
 }: TranscriptProps) {
 	const { t } = useLingui();
-	const plugins = usePluginMentionOptions();
+	const plugins = useTranscriptPlugins();
 	const installedPluginNames = useMemo(
 		() => new Set(plugins.map((plugin) => plugin.name)),
 		[plugins],
@@ -204,6 +206,7 @@ export function Transcript({
 		return ids;
 	}, [approvals, snapshot.items]);
 
+	const { childrenByParent } = useNestedItems();
 	const rows = useMemo(
 		() =>
 			transcriptRows(
@@ -212,8 +215,15 @@ export function Transcript({
 				pendingApprovalTargets,
 				findPageLinks,
 				commandsInApprovals,
+				(tool) => subagentLines(tool, childrenByParent.get(tool.id)) !== null,
 			),
-		[groups, outbox, pendingApprovalTargets, commandsInApprovals],
+		[
+			groups,
+			outbox,
+			pendingApprovalTargets,
+			commandsInApprovals,
+			childrenByParent,
+		],
 	);
 
 	useEffect(() => {
@@ -330,6 +340,7 @@ export function Transcript({
 						proseTopPadding(row, rows[index - 1]),
 					)}
 					commands={commands}
+					childrenByParent={childrenByParent}
 					isEntryCollapsed={isEntryCollapsed}
 					key={row.key}
 					lastReply={lastReplies.has(row.key)}

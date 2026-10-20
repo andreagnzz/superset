@@ -5,6 +5,7 @@ import type {
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
 import type { Decision, UserContent } from "../../protocol/items";
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import type {
 	SessionStream,
 	StreamSocketFactory,
@@ -18,6 +19,20 @@ export type ChatTransport = {
 		input: ChatRouterInputs[Procedure],
 	) => Promise<ChatRouterOutputs[Procedure]>;
 };
+
+export type SteerSubagentResult = "steered" | "finished" | "unsupported";
+export type BackgroundSubagentResult = "moved" | "refused" | "unsupported";
+
+async function orUnsupported<Result>(
+	call: () => Promise<{ result: Result }>,
+): Promise<Result | "unsupported"> {
+	try {
+		return (await call()).result;
+	} catch (error) {
+		if (isMissingProcedureError(error)) return "unsupported";
+		throw error;
+	}
+}
 
 export type GetItemsPage = {
 	before?: Cursor;
@@ -62,6 +77,11 @@ export type SessionClient = {
 	resumeQueue(): Promise<void>;
 	cancelTurn(turnId: string, options?: { pauseQueue?: boolean }): Promise<void>;
 	stopBackgroundTask(taskId: string): Promise<boolean>;
+	steerSubagent(
+		taskId: string,
+		content: UserContent[],
+	): Promise<SteerSubagentResult>;
+	backgroundSubagent(taskId: string): Promise<BackgroundSubagentResult>;
 	respondToApproval(approvalId: string, decision: Decision): Promise<void>;
 	setMode(modeId: string): Promise<void>;
 	setConfigOption(configId: string, value: string): Promise<void>;
@@ -137,6 +157,25 @@ export function createSessionClient(
 				sessionId,
 				taskId,
 			}),
+
+		steerSubagent: (taskId, content) =>
+			orUnsupported(() =>
+				options.transport.steerSubagent({
+					commandId: mintId(),
+					sessionId,
+					taskId,
+					content,
+				}),
+			),
+
+		backgroundSubagent: (taskId) =>
+			orUnsupported(() =>
+				options.transport.backgroundSubagent({
+					commandId: mintId(),
+					sessionId,
+					taskId,
+				}),
+			),
 
 		respondToApproval: async (approvalId, decision) => {
 			await options.transport.respondToApproval({

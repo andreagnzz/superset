@@ -806,6 +806,9 @@ msgstr "{count, plural, one {使用了#个来源} other {使用了#个来源}}"
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {使用了 # 个工具} other {使用了 # 个工具}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, other {正在等待 # 个子智能体}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count}个GitHub星标"
 
@@ -972,6 +975,18 @@ msgstr "你有{myFailedCount}个自动化上次运行失败"
 msgid "{name} accounts"
 msgstr "{name} 账号"
 
+msgid "{name} asks"
+msgstr "{name} 请求确认"
+
+msgid "{name} can't be messaged"
+msgstr "无法向 {name} 发送消息"
+
+msgid "{name} failed"
+msgstr "{name} 失败"
+
+msgid "{name} finished"
+msgstr "{name} 已完成"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} 是内置的，无法移除"
@@ -986,6 +1001,12 @@ msgstr "{name} 尚未添加"
 
 msgid "{name} plugin"
 msgstr "{name} 插件"
+
+msgid "{name} started working"
+msgstr "{name} 开始工作"
+
+msgid "{name} stopped"
+msgstr "{name} 已停止"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {请至少指定一个人员，或选择{choice}。} sender {请至少指定一个发件人，或选择{choice}。} other {请至少指定一个条目，或选择{choice}。}}"
@@ -1090,6 +1111,9 @@ msgstr "已选择{selectedCount}项"
 msgid "{share}% human"
 msgstr "人类{share}%"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, other {# 个 shell}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown}/{total}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {已启动 # 个自动化} other {已启动 # 个�
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 个子智能体运行中}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# 个子智能体}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {已创建#个工作区，{failCount}个失败} other {已创建#个工作区，{failCount}个失败}}"
@@ -2903,14 +2930,8 @@ msgstr "背景"
 msgid "Background processes"
 msgstr "后台进程"
 
-msgid "Background task"
-msgstr "后台任务"
-
 msgid "Background terminal memory"
 msgstr "后台终端内存"
-
-msgid "Background work and pages"
-msgstr "后台工作和页面"
 
 msgid "Backlog"
 msgstr "待规划"
@@ -5212,6 +5233,9 @@ msgstr "无法标记为可评审"
 
 msgid "Couldn't merge pull request"
 msgstr "无法合并拉取请求"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "无法将子智能体移到后台"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "无法自动命名“{name}”"
@@ -7944,6 +7968,9 @@ msgstr "基于"
 msgid "From"
 msgstr "从"
 
+msgid "from {parentName}"
+msgstr "来自 {parentName}"
+
 msgid "from {price}/user/mo"
 msgstr "{price}/用户/月起"
 
@@ -7952,6 +7979,9 @@ msgstr "从一个黑客松项目，到并行编程智能体的工作空间。"
 
 msgid "From GitHub"
 msgstr "来自 GitHub"
+
+msgid "from main agent"
+msgstr "来自主智能体"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "已隐藏front matter，切换到Markdown可编辑"
@@ -10221,6 +10251,9 @@ msgstr "正在合并…"
 msgid "Mesh Gradient"
 msgstr "网格渐变"
 
+msgid "Message {name}…"
+msgstr "发消息给 {name}…"
+
 msgid "Message in channel"
 msgstr "频道中的消息"
 
@@ -10427,6 +10460,12 @@ msgstr "软件史的大部分时间"
 msgid "Move {count} to Group"
 msgstr "将{count}个移动到分组"
 
+msgid "Move {name} to background"
+msgstr "将 {name} 移到后台"
+
+msgid "Move to background"
+msgstr "移到后台"
+
 msgid "Move to group"
 msgstr "移动到分组"
 
@@ -10527,6 +10566,9 @@ msgstr "需要重试"
 
 msgid "Needs Action"
 msgstr "需要处理"
+
+msgid "needs approval"
+msgstr "需要批准"
 
 msgid "Needs attention"
 msgstr "需要处理"
@@ -16397,8 +16439,8 @@ msgstr "停止{0}"
 msgid "Stop {label}"
 msgstr "停止 {label}"
 
-msgid "Stop all agent background processes"
-msgstr "停止所有代理后台进程"
+msgid "Stop {name}"
+msgstr "停止 {name}"
 
 msgid "Stop dictation"
 msgstr "停止语音输入"
@@ -17848,6 +17890,9 @@ msgstr "此slug已被占用"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "这会停止你组织中所有的Teams触发器，并从你的租户中移除通知订阅。你可以随时重新连接。"
 
+msgid "This subagent can't move to the background now"
+msgstr "此子智能体现在无法移到后台"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "主机不再跟踪该子智能体。其记录仍保存在磁盘上的智能体会话目录中。"
 
@@ -17974,6 +18019,9 @@ msgstr "标题"
 
 msgid "To"
 msgstr "到"
+
+msgid "to {name}"
+msgstr "发给 {name}"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "要恢复与智能体的对话，请在其文件夹中运行："
@@ -18610,6 +18658,12 @@ msgstr "请在这台机器上更新Superset以附加文件"
 
 msgid "update the branch prefix"
 msgstr "更新分支前缀"
+
+msgid "Update this host to message subagents"
+msgstr "请更新此主机以向子智能体发送消息"
+
+msgid "Update this host to move subagents to the background"
+msgstr "请更新此主机以将子智能体移到后台"
 
 msgid "Updated"
 msgstr "已更新"

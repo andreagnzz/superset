@@ -126,6 +126,7 @@ export type PromptInputHandle = {
 	openFileDialog(): void;
 	openPanel(panel: ComposerPanelContent): void;
 	focus(): void;
+	recallPreviousPrompt(): void;
 };
 
 export type PromptInputProps = {
@@ -157,6 +158,7 @@ export type PromptInputProps = {
 		payload: PromptInputSubmitPayload,
 	) => false | void | Promise<void>;
 	onStop?: () => void;
+	stopOnEscape?: boolean;
 	header?: ReactNode;
 	onAddFiles?: (files: File[]) => void;
 	allowEmptySubmit?: boolean;

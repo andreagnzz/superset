@@ -806,6 +806,9 @@ msgstr "{count, plural, one {Использован # источник} few {И�
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {использован # инструмент} few {использовано # инструмента} many {использовано # инструментов} other {использовано # инструмента}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, one {ожидает # субагента} few {ожидает # субагентов} many {ожидает # субагентов} other {ожидает # субагента}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count} звёзд на GitHub"
 
@@ -972,6 +975,18 @@ msgstr "Ваши автоматизации с ошибкой при после�
 msgid "{name} accounts"
 msgstr "Аккаунты {name}"
 
+msgid "{name} asks"
+msgstr "{name} спрашивает"
+
+msgid "{name} can't be messaged"
+msgstr "{name} не может получать сообщения"
+
+msgid "{name} failed"
+msgstr "{name}: ошибка"
+
+msgid "{name} finished"
+msgstr "{name} завершил работу"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} встроен и не может быть удалён"
@@ -986,6 +1001,12 @@ msgstr "{name} не добавлен"
 
 msgid "{name} plugin"
 msgstr "Плагин {name}"
+
+msgid "{name} started working"
+msgstr "{name} начал работу"
+
+msgid "{name} stopped"
+msgstr "{name} остановлен"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Укажите хотя бы одного человека или выберите {choice}.} sender {Укажите хотя бы одного отправителя или выберите {choice}.} other {Укажите хотя бы одно значение или выберите {choice}.}}"
@@ -1090,6 +1111,9 @@ msgstr "Выбрано: {selectedCount}"
 msgid "{share}% human"
 msgstr "{share}% человека"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, one {# шелл} few {# шелла} many {# шеллов} other {# шелла}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} из {total}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {Запущена # автоматизация} fe
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# субагент выполняется} few {# субагента выполняются} many {# субагентов выполняются} other {# субагента выполняются}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# субагент} few {# субагента} many {# субагентов} other {# субагента}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Создана # рабочая область, {failCount} с ошибкой} few {Создано # рабочие области, {failCount} с ошибкой} many {Создано # рабочих областей, {failCount} с ошибкой} other {Создано # рабочей области, {failCount} с ошибкой}}"
@@ -2903,14 +2930,8 @@ msgstr "Фон"
 msgid "Background processes"
 msgstr "Фоновые процессы"
 
-msgid "Background task"
-msgstr "Фоновая задача"
-
 msgid "Background terminal memory"
 msgstr "Память фоновых терминалов"
-
-msgid "Background work and pages"
-msgstr "Фоновая работа и страницы"
 
 msgid "Backlog"
 msgstr "Бэклог"
@@ -5212,6 +5233,9 @@ msgstr "Не удалось пометить как готовый к ревью
 
 msgid "Couldn't merge pull request"
 msgstr "Не удалось объединить пул-реквест"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "Не удалось перевести субагента в фон"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "Не удалось автоматически назвать «{name}»"
@@ -7944,6 +7968,9 @@ msgstr "от"
 msgid "From"
 msgstr "Откуда"
 
+msgid "from {parentName}"
+msgstr "от {parentName}"
+
 msgid "from {price}/user/mo"
 msgstr "от {price}/польз./мес"
 
@@ -7952,6 +7979,9 @@ msgstr "От проекта с хакатона до рабочего прост
 
 msgid "From GitHub"
 msgstr "Из GitHub"
+
+msgid "from main agent"
+msgstr "от основного агента"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter скрыт — переключитесь на Markdown, чтобы его изменить"
@@ -10221,6 +10251,9 @@ msgstr "Объединение…"
 msgid "Mesh Gradient"
 msgstr "Mesh-градиент"
 
+msgid "Message {name}…"
+msgstr "Сообщение для {name}…"
+
 msgid "Message in channel"
 msgstr "Сообщение в канале"
 
@@ -10427,6 +10460,12 @@ msgstr "Почти вся история софта"
 msgid "Move {count} to Group"
 msgstr "Переместить {count} в группу"
 
+msgid "Move {name} to background"
+msgstr "Перевести {name} в фон"
+
+msgid "Move to background"
+msgstr "Перевести в фон"
+
 msgid "Move to group"
 msgstr "Переместить в группу"
 
@@ -10527,6 +10566,9 @@ msgstr "Требует повтора"
 
 msgid "Needs Action"
 msgstr "Требует действия"
+
+msgid "needs approval"
+msgstr "нужно подтверждение"
 
 msgid "Needs attention"
 msgstr "Требует внимания"
@@ -16397,8 +16439,8 @@ msgstr "Остановить {0}"
 msgid "Stop {label}"
 msgstr "Остановить {label}"
 
-msgid "Stop all agent background processes"
-msgstr "Остановить все фоновые процессы агентов"
+msgid "Stop {name}"
+msgstr "Остановить {name}"
 
 msgid "Stop dictation"
 msgstr "Остановить диктовку"
@@ -17848,6 +17890,9 @@ msgstr "Этот slug уже занят"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Это остановит все триггеры Teams в вашей организации и удалит подписки на уведомления из вашего тенанта. Переподключиться можно в любой момент."
 
+msgid "This subagent can't move to the background now"
+msgstr "Этого субагента сейчас нельзя перевести в фон"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Хост больше не отслеживает этого субагента. Его стенограмма остаётся на диске в каталоге сессии агента."
 
@@ -17974,6 +18019,9 @@ msgstr "Название"
 
 msgid "To"
 msgstr "Куда"
+
+msgid "to {name}"
+msgstr "для {name}"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "Чтобы возобновить разговор с агентом, выполните это в его папке:"
@@ -18610,6 +18658,12 @@ msgstr "Обновите Superset на этой машине, чтобы при�
 
 msgid "update the branch prefix"
 msgstr "обновить префикс ветки"
+
+msgid "Update this host to message subagents"
+msgstr "Обновите этот хост, чтобы писать субагентам"
+
+msgid "Update this host to move subagents to the background"
+msgstr "Обновите этот хост, чтобы переводить субагентов в фон"
 
 msgid "Updated"
 msgstr "Обновлено"

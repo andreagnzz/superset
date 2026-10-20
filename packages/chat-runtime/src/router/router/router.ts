@@ -1,4 +1,5 @@
 import {
+	backgroundSubagentInputSchema,
 	cancelTurnInputSchema,
 	closeSessionInputSchema,
 	createSessionInputSchema,
@@ -16,6 +17,7 @@ import {
 	rewindSessionInputSchema,
 	setConfigOptionInputSchema,
 	setModeInputSchema,
+	steerSubagentInputSchema,
 	stopBackgroundTaskInputSchema,
 } from "@superset/chat/protocol";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
@@ -129,6 +131,24 @@ export function createChatRouter(
 			.mutation(({ input }) =>
 				guarded(() => runtime.commands.stopBackgroundTask(input)),
 			),
+
+		steerSubagent: t.procedure
+			.input(steerSubagentInputSchema)
+			.mutation(async ({ input }) => ({
+				result: (await guarded(() => runtime.commands.steerSubagent(input)))
+					? ("steered" as const)
+					: ("finished" as const),
+			})),
+
+		backgroundSubagent: t.procedure
+			.input(backgroundSubagentInputSchema)
+			.mutation(async ({ input }) => ({
+				result: (await guarded(() =>
+					runtime.commands.backgroundSubagent(input),
+				))
+					? ("moved" as const)
+					: ("refused" as const),
+			})),
 
 		respondToApproval: t.procedure
 			.input(respondToApprovalInputSchema)

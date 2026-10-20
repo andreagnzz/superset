@@ -51,6 +51,7 @@ export function PromptInput({
 	collapseLargePastes = false,
 	onSubmit,
 	onStop,
+	stopOnEscape = true,
 	header,
 	onAddFiles,
 	allowEmptySubmit = false,
@@ -91,6 +92,7 @@ export function PromptInput({
 					collapseLargePastes={collapseLargePastes}
 					onSubmit={onSubmit}
 					onStop={onStop}
+					stopOnEscape={stopOnEscape}
 					header={header}
 					onAddFiles={onAddFiles}
 					allowEmptySubmit={allowEmptySubmit}

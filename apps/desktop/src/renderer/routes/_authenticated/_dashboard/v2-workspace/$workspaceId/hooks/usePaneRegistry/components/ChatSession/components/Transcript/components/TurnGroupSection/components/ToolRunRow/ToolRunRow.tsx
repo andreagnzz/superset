@@ -12,12 +12,14 @@ import {
 import { cn } from "@superset/ui/utils";
 import { ChevronRight } from "lucide-react";
 import { memo } from "react";
+import { stepSummary } from "../../../../utils/stepSummary";
+import { isNestedTool } from "../../../../utils/subagentLines";
 import { toolKindIcon } from "../../../../utils/toolKindIcon";
+import { NestedToolCallRow } from "../../../NestedToolCallRow";
 import { ReasoningRow } from "../../../ReasoningRow";
 import { ToolCallRow } from "../../../ToolCallRow";
 import { RailStep } from "../RailStep";
 import { dominantKind } from "./utils/dominantKind";
-import { stepSummary } from "./utils/stepSummary";
 
 const SUMMARY_SWEEP_SECONDS = 1.6;
 
@@ -27,9 +29,19 @@ type ToolRunRowProps = {
 	steps: readonly Item[];
 	/** Each step's thinking text, "" for a tool call. */
 	stepTexts: readonly string[];
+	childLists?: readonly (readonly Item[] | undefined)[] | undefined;
 	collapsed: boolean;
 	onToggle: (rowKey: string, collapsed: boolean) => void;
 };
+
+function sameChildLists(
+	previous: ToolRunRowProps["childLists"],
+	next: ToolRunRowProps["childLists"],
+): boolean {
+	if (previous === next) return true;
+	if (!previous || !next || previous.length !== next.length) return false;
+	return previous.every((list, index) => list === next[index]);
+}
 
 function sameTools(previous: ToolRunRowProps, next: ToolRunRowProps): boolean {
 	return (
@@ -38,7 +50,8 @@ function sameTools(previous: ToolRunRowProps, next: ToolRunRowProps): boolean {
 		previous.onToggle === next.onToggle &&
 		previous.steps.length === next.steps.length &&
 		previous.steps.every((step, index) => step === next.steps[index]) &&
-		previous.stepTexts.every((text, index) => text === next.stepTexts[index])
+		previous.stepTexts.every((text, index) => text === next.stepTexts[index]) &&
+		sameChildLists(previous.childLists, next.childLists)
 	);
 }
 
@@ -49,6 +62,7 @@ export const ToolRunRow = memo(function ToolRunRow({
 	rowKey,
 	steps,
 	stepTexts,
+	childLists,
 }: ToolRunRowProps) {
 	const done = items.filter((tool) => tool.status !== "running");
 	const live = done.length === 0;
@@ -99,6 +113,11 @@ export const ToolRunRow = memo(function ToolRunRow({
 								item={step as ReasoningItem}
 								text={stepTexts[index] ?? ""}
 							/>
+						) : isNestedTool(
+								step as ToolCall,
+								childLists?.[items.indexOf(step as ToolCall)],
+							) ? (
+							<NestedToolCallRow item={step as ToolCall} />
 						) : (
 							<ToolCallRow item={step as ToolCall} />
 						)}

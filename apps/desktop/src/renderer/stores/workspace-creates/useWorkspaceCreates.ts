@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import { i18n } from "@superset/i18n";
 import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
 import { TRPCClientError } from "@trpc/client";
@@ -80,14 +81,6 @@ interface CreateOutcome {
 	 * the same as `true` (don't count it), never as `false`.
 	 */
 	alreadyExists?: boolean;
-}
-
-/** Older hosts don't have `workspaces.createEnqueued` yet. */
-function isMissingProcedureError(error: unknown): boolean {
-	return (
-		error instanceof TRPCClientError &&
-		/no procedure found on path/i.test(error.message)
-	);
 }
 
 /** An `AbortSignal.timeout` firing — host reachable but slow, as opposed to

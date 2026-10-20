@@ -767,6 +767,7 @@
       "name": "@superset/chat",
       "version": "0.0.1",
       "dependencies": {
+        "@superset/shared": "workspace:*",
         "marked": "17.0.6",
         "zod": "4.6.5",
       },

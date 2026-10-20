@@ -124,6 +124,7 @@ export type ToolKind = z.infer<typeof toolKindSchema>;
 export const userMessageSchema = z.looseObject({
 	...itemBaseFields,
 	kind: z.literal("user_message"),
+	from: z.literal("parent").optional(),
 	clientId: z.string().min(1).optional(),
 	queued: z.boolean().optional(),
 	discarded: z.boolean().optional(),
@@ -159,6 +160,14 @@ export const toolCallStatusSchema = z.enum([
 ]);
 export type ToolCallStatus = z.infer<typeof toolCallStatusSchema>;
 
+export const subagentStatusSchema = z.enum([
+	"running",
+	"idle",
+	"stopped",
+	"failed",
+]);
+export type SubagentStatus = z.infer<typeof subagentStatusSchema>;
+
 export const toolCallSchema = z.looseObject({
 	...itemBaseFields,
 	kind: z.literal("tool_call"),
@@ -175,6 +184,10 @@ export const toolCallSchema = z.looseObject({
 	rawInput: z.unknown().optional(),
 	rawOutput: z.unknown().optional(),
 	subagent: z.boolean().optional(),
+	subagentStatus: subagentStatusSchema.optional(),
+	canSteer: z.boolean().optional(),
+	canStop: z.boolean().optional(),
+	canBackground: z.boolean().optional(),
 	attachments: z.array(itemAttachmentSchema).optional(),
 	bodyOmitted: z.boolean().optional(),
 	mcpServer: z

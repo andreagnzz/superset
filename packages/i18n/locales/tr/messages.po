@@ -806,6 +806,9 @@ msgstr "{count, plural, one {# kaynak kullanıldı} other {# kaynak kullanıldı
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {# araç kullanıldı} other {# araç kullanıldı}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, one {# alt ajan bekleniyor} other {# alt ajan bekleniyor}}"
+
 msgid "{count} GitHub stars"
 msgstr "{count} GitHub yıldızı"
 
@@ -972,6 +975,18 @@ msgstr "Otomasyonlarınızdan {myFailedCount} tanesi son çalıştırmasında ba
 msgid "{name} accounts"
 msgstr "{name} hesapları"
 
+msgid "{name} asks"
+msgstr "{name} soruyor"
+
+msgid "{name} can't be messaged"
+msgstr "{name} mesaj alamıyor"
+
+msgid "{name} failed"
+msgstr "{name} başarısız oldu"
+
+msgid "{name} finished"
+msgstr "{name} bitti"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} yerleşiktir ve kaldırılamaz"
@@ -986,6 +1001,12 @@ msgstr "{name} eklenmedi"
 
 msgid "{name} plugin"
 msgstr "{name} eklentisi"
+
+msgid "{name} started working"
+msgstr "{name} çalışmaya başladı"
+
+msgid "{name} stopped"
+msgstr "{name} durduruldu"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {En az bir kişi belirtin veya {choice} seçeneğini seçin.} sender {En az bir gönderen belirtin veya {choice} seçeneğini seçin.} other {En az bir öğe belirtin veya {choice} seçeneğini seçin.}}"
@@ -1090,6 +1111,9 @@ msgstr "{selectedCount} seçildi"
 msgid "{share}% human"
 msgstr "%{share} insan"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, one {# shell} other {# shell}}"
+
 msgid "{shown} of {total}"
 msgstr "{total} içinden {shown}"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {# otomasyon başlatıldı} other {# otomasyon ba�
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# alt ajan çalışıyor} other {# alt ajan çalışıyor}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# alt ajan} other {# alt ajan}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# çalışma alanı oluşturuldu, {failCount} başarısız} other {# çalışma alanı oluşturuldu, {failCount} başarısız}}"
@@ -2903,14 +2930,8 @@ msgstr "Arka plan"
 msgid "Background processes"
 msgstr "Arka plan işlemleri"
 
-msgid "Background task"
-msgstr "Arka plan görevi"
-
 msgid "Background terminal memory"
 msgstr "Arka plan terminal belleği"
-
-msgid "Background work and pages"
-msgstr "Arka plan işleri ve sayfalar"
 
 msgid "Backlog"
 msgstr "Bekleyen işler"
@@ -5212,6 +5233,9 @@ msgstr "İncelemeye hazır olarak işaretlenemedi"
 
 msgid "Couldn't merge pull request"
 msgstr "Pull request birleştirilemedi"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "Alt ajan arka plana taşınamadı"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "\"{name}\" otomatik olarak adlandırılamadı"
@@ -7944,6 +7968,9 @@ msgstr "kaynak:"
 msgid "From"
 msgstr "Kaynak"
 
+msgid "from {parentName}"
+msgstr "{parentName} tarafından"
+
 msgid "from {price}/user/mo"
 msgstr "başlangıç: {price}/kullanıcı/ay"
 
@@ -7952,6 +7979,9 @@ msgstr "Bir hackathon projesinden paralel kodlama ajanları için çalışma ala
 
 msgid "From GitHub"
 msgstr "GitHub'dan"
+
+msgid "from main agent"
+msgstr "ana ajandan"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter gizli — düzenlemek için Markdown'a geçin"
@@ -10221,6 +10251,9 @@ msgstr "Birleştiriliyor…"
 msgid "Mesh Gradient"
 msgstr "Mesh gradyanı"
 
+msgid "Message {name}…"
+msgstr "{name} için mesaj…"
+
 msgid "Message in channel"
 msgstr "Kanalda mesaj"
 
@@ -10427,6 +10460,12 @@ msgstr "Yazılım tarihinin çoğu"
 msgid "Move {count} to Group"
 msgstr "{count} öğeyi gruba taşı"
 
+msgid "Move {name} to background"
+msgstr "{name} öğesini arka plana taşı"
+
+msgid "Move to background"
+msgstr "Arka plana taşı"
+
 msgid "Move to group"
 msgstr "Gruba taşı"
 
@@ -10527,6 +10566,9 @@ msgstr "Yeniden denenmeli"
 
 msgid "Needs Action"
 msgstr "İşlem gerekiyor"
+
+msgid "needs approval"
+msgstr "onay gerekiyor"
 
 msgid "Needs attention"
 msgstr "İlgi bekliyor"
@@ -16397,8 +16439,8 @@ msgstr "Durdur: {0}"
 msgid "Stop {label}"
 msgstr "{label} öğesini durdur"
 
-msgid "Stop all agent background processes"
-msgstr "Tüm ajan arka plan işlemlerini durdur"
+msgid "Stop {name}"
+msgstr "{name} öğesini durdur"
 
 msgid "Stop dictation"
 msgstr "Sesle yazmayı durdur"
@@ -17848,6 +17890,9 @@ msgstr "Bu slug zaten alınmış"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Bu işlem kuruluşunuzdaki tüm Teams tetikleyicilerini durdurur ve bildirim aboneliklerini kiracınızdan kaldırır. İstediğiniz zaman yeniden bağlanabilirsiniz."
 
+msgid "This subagent can't move to the background now"
+msgstr "Bu alt ajan şu anda arka plana taşınamıyor"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Bu alt ajan artık ana makine tarafından izlenmiyor. Dökümü, ajanın oturum dizininde diskte kalır."
 
@@ -17974,6 +18019,9 @@ msgstr "Başlık"
 
 msgid "To"
 msgstr "Hedef"
+
+msgid "to {name}"
+msgstr "{name} için"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "Bir ajan konuşmasını sürdürmek için klasöründe şunu çalıştırın:"
@@ -18610,6 +18658,12 @@ msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
 
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"
+
+msgid "Update this host to message subagents"
+msgstr "Alt ajanlara mesaj göndermek için bu ana makineyi güncelleyin"
+
+msgid "Update this host to move subagents to the background"
+msgstr "Alt ajanları arka plana taşımak için bu ana makineyi güncelleyin"
 
 msgid "Updated"
 msgstr "Güncellendi"

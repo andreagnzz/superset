@@ -60,6 +60,21 @@ export type StopBackgroundTaskInput = z.infer<
 	typeof stopBackgroundTaskInputSchema
 >;
 
+export const steerSubagentInputSchema = z.object({
+	...commandBaseFields,
+	taskId: z.string().min(1),
+	content: z.array(userContentSchema).min(1),
+});
+export type SteerSubagentInput = z.infer<typeof steerSubagentInputSchema>;
+
+export const backgroundSubagentInputSchema = z.object({
+	...commandBaseFields,
+	taskId: z.string().min(1),
+});
+export type BackgroundSubagentInput = z.infer<
+	typeof backgroundSubagentInputSchema
+>;
+
 export const respondToApprovalInputSchema = z.object({
 	...commandBaseFields,
 	approvalId: z.string().min(1),

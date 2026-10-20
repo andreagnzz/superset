@@ -306,6 +306,20 @@ export class LiveSession {
 		);
 	}
 
+	steerSubagent(taskId: string, content: UserContent[]): Promise<boolean> {
+		return (
+			this.options.adapter.steerSubagent?.(taskId, content) ??
+			Promise.resolve(false)
+		);
+	}
+
+	backgroundSubagent(taskId: string): Promise<boolean> {
+		return (
+			this.options.adapter.backgroundSubagent?.(taskId) ??
+			Promise.resolve(false)
+		);
+	}
+
 	fork(cut?: { upToMessageId: string }): Promise<string | null> {
 		return this.options.adapter.fork?.(cut) ?? Promise.resolve(null);
 	}

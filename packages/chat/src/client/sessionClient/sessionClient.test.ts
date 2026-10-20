@@ -38,12 +38,12 @@ const SCRIPT: FakeHarnessScript = {
 	turns: [turnScript("t1", "a1"), turnScript("t2", "a2")],
 };
 
-function startStack(): {
+function startStack(script: FakeHarnessScript = SCRIPT): {
 	runtime: ChatRuntime;
 	transport: ChatTransport;
 	server: ReturnType<typeof createMemoryStreamServer>;
 } {
-	const { harnesses } = fakeHarnessRegistry(SCRIPT);
+	const { harnesses } = fakeHarnessRegistry(script);
 	const runtime = createTestRuntime({ harnesses });
 	const router = createChatRouter(runtime, {
 		resolveCwd: () => "/tmp/workspace",
@@ -186,6 +186,104 @@ describe("createSessionClient", () => {
 		expect(server.openConnections()).toHaveLength(1);
 		client.close();
 		expect(server.openConnections()).toHaveLength(0);
+		await runtime.dispose();
+	});
+
+	test("steerSubagent tells steered, finished and an older host apart", async () => {
+		const { runtime, transport, server } = startStack({
+			...SCRIPT,
+			steerableSubagents: ["subagent:child-1"],
+		});
+		const created = await transport.createSession({
+			commandId: randomUUID(),
+			workspaceId: "workspace-1",
+			harness: FAKE_HARNESS,
+		});
+		const makeClient = (clientTransport: ChatTransport) =>
+			createSessionClient({
+				sessionId: created.sessionId,
+				transport: clientTransport,
+				streamBaseUrl: "ws://test/chat-v3",
+				createSocket: server.createSocket,
+			});
+		const content = [{ type: "text" as const, text: "more" }];
+
+		const client = makeClient(transport);
+		expect(await client.steerSubagent("subagent:child-1", content)).toBe(
+			"steered",
+		);
+		expect(await client.steerSubagent("subagent:child-2", content)).toBe(
+			"finished",
+		);
+
+		const rejectingSteer = (error: Error): ChatTransport =>
+			new Proxy(transport, {
+				get: (target, prop, receiver) =>
+					prop === "steerSubagent"
+						? () => Promise.reject(error)
+						: Reflect.get(target, prop, receiver),
+			});
+		const olderHost = makeClient(
+			rejectingSteer(
+				new Error('No procedure found on path "chat.steerSubagent"'),
+			),
+		);
+		expect(await olderHost.steerSubagent("subagent:child-1", content)).toBe(
+			"unsupported",
+		);
+
+		const failing = makeClient(rejectingSteer(new Error("socket closed")));
+		await expect(
+			failing.steerSubagent("subagent:child-1", content),
+		).rejects.toThrow("socket closed");
+
+		client.close();
+		await runtime.dispose();
+	});
+
+	test("backgroundSubagent tells moved, refused and an older host apart", async () => {
+		const { runtime, transport, server } = startStack({
+			...SCRIPT,
+			backgroundableSubagents: ["subagent:child-1"],
+		});
+		const created = await transport.createSession({
+			commandId: randomUUID(),
+			workspaceId: "workspace-1",
+			harness: FAKE_HARNESS,
+		});
+		const makeClient = (clientTransport: ChatTransport) =>
+			createSessionClient({
+				sessionId: created.sessionId,
+				transport: clientTransport,
+				streamBaseUrl: "ws://test/chat-v3",
+				createSocket: server.createSocket,
+			});
+
+		const client = makeClient(transport);
+		expect(await client.backgroundSubagent("subagent:child-1")).toBe("moved");
+		expect(await client.backgroundSubagent("subagent:child-2")).toBe("refused");
+
+		const rejecting = (error: Error): ChatTransport =>
+			new Proxy(transport, {
+				get: (target, prop, receiver) =>
+					prop === "backgroundSubagent"
+						? () => Promise.reject(error)
+						: Reflect.get(target, prop, receiver),
+			});
+		const olderHost = makeClient(
+			rejecting(
+				new Error('No procedure found on path "chat.backgroundSubagent"'),
+			),
+		);
+		expect(await olderHost.backgroundSubagent("subagent:child-1")).toBe(
+			"unsupported",
+		);
+		const failing = makeClient(rejecting(new Error("socket closed")));
+		await expect(
+			failing.backgroundSubagent("subagent:child-1"),
+		).rejects.toThrow("socket closed");
+
+		client.close();
 		await runtime.dispose();
 	});
 });

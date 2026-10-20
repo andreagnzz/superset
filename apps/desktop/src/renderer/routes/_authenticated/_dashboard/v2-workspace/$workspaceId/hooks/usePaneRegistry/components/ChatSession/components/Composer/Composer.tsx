@@ -1,10 +1,9 @@
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { appendPastedText } from "@superset/chat/core";
 import type {
 	AvailableCommand,
 	SessionConfigOption,
 	UserContent,
-	UserMessage,
 } from "@superset/chat/protocol";
 import type {
 	ComposerChip,
@@ -19,7 +18,6 @@ import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	memo,
-	type KeyboardEvent as ReactKeyboardEvent,
 	type Ref,
 	useCallback,
 	useEffect,
@@ -39,22 +37,32 @@ import { mcpContextLine } from "../../utils/mcpServerChips";
 import { elementsForChips } from "../../utils/messageElements";
 import { type AgentSwitcher, ModelPicker } from "./components/ModelPicker";
 import { ModePicker, type SessionMode } from "./components/ModePicker";
-import { QueuedPrompts } from "./components/QueuedPrompts";
 import { useAttachmentPreview } from "./hooks/useAttachmentPreview";
 import {
 	takeRecoveredDraftText,
 	useComposerDraft,
 } from "./hooks/useComposerDraft";
+import { useDrawerEntry } from "./hooks/useDrawerEntry";
 import { useFooterTier } from "./hooks/useFooterTier";
 import { useMcpServerPicker } from "./hooks/useMcpServerPicker";
-import { useQueueActions } from "./hooks/useQueueActions";
 import { useUploadAttachments } from "./hooks/useUploadAttachments";
+
+export type ComposerTarget = {
+	name: string;
+	disabledReason?: string;
+	onStop?: () => void;
+};
+
+export type ComposerHandle = Pick<PromptInputHandle, "appendText" | "focus"> & {
+	returnFocus: (recallHistory?: boolean) => void;
+};
 
 export type ComposerProps = {
 	workspaceId: string;
 	presetId?: string;
 	draftKey: string;
-	inputRef?: Ref<Pick<PromptInputHandle, "appendText" | "focus">>;
+	draftPersisted?: boolean;
+	inputRef?: Ref<ComposerHandle>;
 	availableCommands: AvailableCommand[];
 	configOptions?: SessionConfigOption[];
 	onSetConfigOption?: (configId: string, value: string) => unknown;
@@ -68,14 +76,10 @@ export type ComposerProps = {
 	placeholder?: string;
 	disabled?: boolean;
 	onCancelTurn?: (() => void) | null;
-	promptQueue?: {
-		prompts: UserMessage[];
-		paused: boolean;
-		actionable: boolean;
-		remove: (itemId: string) => Promise<void>;
-		resume: () => Promise<void>;
-		steer: (itemId: string) => Promise<void>;
-	};
+	target?: ComposerTarget;
+	canQueue?: boolean;
+	escapeGoesBack?: boolean;
+	onEnterDrawer?: (options: { actionableOnly: boolean }) => boolean;
 };
 
 const HIDDEN_AGENT_COMMANDS = new Set(["rewind"]);
@@ -108,38 +112,60 @@ export const Composer = memo(function Composer({
 	presetId,
 	agentSwitcher,
 	availableCommands,
+	canQueue = false,
 	configOptions,
+	escapeGoesBack = false,
 	currentModeId,
 	modes,
 	onSetConfigOption,
 	onSetMode,
 	disabled,
 	draftKey,
+	draftPersisted = true,
 	inputRef,
 	history,
 	isActive,
 	onCancelTurn,
+	onEnterDrawer,
 	onSend,
 	placeholder,
-	promptQueue,
+	target,
 	workspaceId,
 }: ComposerProps) {
 	const { t } = useLingui();
+	const blocked = disabled || target?.disabledReason !== undefined;
+	const stop = target ? target.onStop : (onCancelTurn ?? undefined);
+	const queueing = !target && canQueue;
+	const name = target?.name ?? "";
 	const trpcUtils = workspaceTrpc.useUtils();
 	const cloudUtils = cloudTrpc.useUtils();
 	const uploadAttachments = useUploadAttachments(workspaceId);
 	const attachmentPreview = useAttachmentPreview();
-	const { storedDraft, onChange, clearDraft } = useComposerDraft(draftKey);
+	const { storedDraft, onChange, clearDraft } = useComposerDraft(
+		draftKey,
+		draftPersisted,
+	);
 	const promptInputRef = useRef<PromptInputHandle>(null);
-	const queueActions = useQueueActions(promptQueue, promptInputRef);
+	const focusInput = useCallback(() => promptInputRef.current?.focus(), []);
+	const recallHistory = useCallback(
+		() => promptInputRef.current?.recallPreviousPrompt(),
+		[],
+	);
+	const drawerEntry = useDrawerEntry({
+		enterDrawer: onEnterDrawer,
+		focusComposer: focusInput,
+		recallHistory,
+	});
+	const { returnFocus } = drawerEntry;
 	const mcpPicker = useMcpServerPicker({ workspaceId, presetId });
 	useImperativeHandle(
 		inputRef,
 		() => ({
 			appendText: (text: string) => promptInputRef.current?.appendText(text),
-			focus: () => promptInputRef.current?.focus(),
+			focus: focusInput,
+			returnFocus,
 		}),
-		[],
+		[focusInput, returnFocus],
 	);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const footerTier = useFooterTier(rootRef);
@@ -330,7 +356,7 @@ export const Composer = memo(function Composer({
 			steer,
 		}: PromptInputSubmitPayload) => {
 			if (
-				disabled ||
+				blocked ||
 				(text.trim() === "" && files.length === 0 && pastedTexts.length === 0)
 			)
 				return;
@@ -349,6 +375,7 @@ export const Composer = memo(function Composer({
 			}
 			if (
 				name &&
+				!target &&
 				availableCommands.length > 0 &&
 				!availableCommands.some((command) => command.name === name)
 			) {
@@ -357,48 +384,18 @@ export const Composer = memo(function Composer({
 			}
 			return send(text, files, mentions, pastedTexts, steer);
 		},
-		[availableCommands, disabled, send, t, mcpPicker],
+		[availableCommands, blocked, send, t, target, mcpPicker],
 	);
-
-	const queueListRef = useRef<HTMLUListElement>(null);
-	const focusQueue = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-		if (event.key !== "Tab" || !event.shiftKey || !promptQueue?.actionable)
-			return;
-		if (
-			!(event.target instanceof HTMLElement) ||
-			!event.target.closest(".prompt-input-editor")
-		)
-			return;
-		const rows =
-			queueListRef.current?.querySelectorAll<HTMLElement>("[data-queue-row]");
-		const newest = rows?.[rows.length - 1];
-		if (!newest) return;
-		event.preventDefault();
-		event.stopPropagation();
-		newest.focus();
-	};
 
 	return (
 		<div
 			ref={rootRef}
 			className={cn(CHAT_GUTTER_CLASSNAME, "pt-1 pb-5")}
-			onKeyDownCapture={focusQueue}
+			onKeyDownCapture={drawerEntry.onKeyDownCapture}
 		>
-			{promptQueue && (
-				<div className={CHAT_COLUMN_CLASSNAME}>
-					<QueuedPrompts
-						{...queueActions}
-						actionable={promptQueue.actionable}
-						listRef={queueListRef}
-						onExit={() => promptInputRef.current?.focus()}
-						paused={promptQueue.paused}
-						prompts={promptQueue.prompts}
-					/>
-				</div>
-			)}
 			<AgentComposer
 				className={CHAT_COLUMN_CLASSNAME}
-				clearOnSubmit={!disabled}
+				clearOnSubmit={!blocked}
 				collapseLargePastes
 				commands={commands}
 				defaultValue={storedDraft}
@@ -408,17 +405,26 @@ export const Composer = memo(function Composer({
 				mentionProviders={mentionProviders}
 				onAttachmentClick={attachmentPreview.onAttachmentClick}
 				onChange={onChange}
-				onStop={onCancelTurn ?? undefined}
+				onStop={stop}
 				onSubmit={handleSubmit}
 				ref={promptInputRef}
 				placeholder={
-					placeholder ??
-					t({ message: "Ask the agent, @mention files, run /commands" })
+					target
+						? (target.disabledReason ?? t({ message: `Message ${name}…` }))
+						: (placeholder ??
+							t({ message: "Ask the agent, @mention files, run /commands" }))
 				}
-				status={onCancelTurn ? "streaming" : "ready"}
-				submitWhileStreaming={promptQueue !== undefined}
+				status={stop ? "streaming" : "ready"}
+				stopOnEscape={!escapeGoesBack}
+				submitWhileStreaming={target !== undefined || queueing}
 				toolbar={
-					modes && onSetMode ? (
+					target ? (
+						<span className="flex h-6 min-w-0 max-w-48 items-center rounded-md border border-border/60 px-2 font-sans text-foreground/70 text-xs">
+							<span className="min-w-0 truncate">
+								<Trans>to {name}</Trans>
+							</span>
+						</span>
+					) : modes && onSetMode ? (
 						<ModePicker
 							currentModeId={currentModeId}
 							iconOnly={footerTier >= 2}
@@ -428,7 +434,7 @@ export const Composer = memo(function Composer({
 					) : undefined
 				}
 				toolbarEnd={
-					configOptions && onSetConfigOption ? (
+					!target && configOptions && onSetConfigOption ? (
 						<ModelPicker
 							agentSwitcher={agentSwitcher}
 							configOptions={configOptions}

@@ -298,3 +298,44 @@ describe("transcriptRows", () => {
 		);
 	});
 });
+
+test("a subagent's task call leaves its tool run", () => {
+	const tool = (id: string): ToolCall => ({
+		id,
+		kind: "tool_call",
+		title: id,
+		toolKind: "read",
+		toolName: "read",
+		status: "completed",
+		content: [],
+		startedAtMs: 1,
+	});
+	const rows = transcriptRows(
+		[
+			{
+				turnId: "t1",
+				turn: null,
+				entries: [
+					{
+						kind: "tool_run",
+						items: [tool("r1"), tool("r2"), tool("task-1"), tool("r3")],
+					},
+				],
+			},
+		],
+		[],
+		new Set(),
+		find,
+		new Set(),
+		(each) => each.id === "task-1",
+	);
+	expect(
+		rows.map((row) =>
+			row.kind === "tool_run"
+				? row.items.map((each) => each.id)
+				: row.kind === "item"
+					? row.item.id
+					: row.kind,
+		),
+	).toEqual([["r1", "r2"], "task-1", "r3"]);
+});

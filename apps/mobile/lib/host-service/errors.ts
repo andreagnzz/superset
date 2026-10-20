@@ -16,15 +16,4 @@ export function isTrpcErrorWithData(
 	);
 }
 
-/**
- * The host is older than the procedure being called. Mobile ships through
- * the App Store and hosts update on their own schedule, so a call the app
- * knows about and the host does not is a routine state to name, not a fault
- * to report.
- */
-export function isMissingProcedureError(error: unknown): boolean {
-	return (
-		error instanceof TRPCClientError &&
-		/no procedure found on path/i.test(error.message)
-	);
-}
+export { isMissingProcedureError } from "@superset/shared/missing-procedure-error";

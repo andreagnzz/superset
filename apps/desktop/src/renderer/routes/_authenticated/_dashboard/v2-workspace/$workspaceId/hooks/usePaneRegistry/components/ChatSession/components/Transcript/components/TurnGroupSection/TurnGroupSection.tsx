@@ -1,5 +1,6 @@
+import { useLingui } from "@lingui/react/macro";
 import type { OutboxEntry, SessionSnapshot } from "@superset/chat/core";
-import { displayText } from "@superset/chat/core";
+import { approvalAsker, displayText } from "@superset/chat/core";
 import type {
 	ApprovalRequest,
 	AvailableCommand,
@@ -69,6 +70,7 @@ export type TurnGroupSectionProps = {
 	row: TranscriptRow;
 	lastReply: boolean;
 	snapshot: SessionSnapshot;
+	childrenByParent: ReadonlyMap<string, readonly Item[]>;
 	isEntryCollapsed: (entryKey: string, defaultCollapsed: boolean) => boolean;
 	onToggleEntry: (entryKey: string, collapsed: boolean) => void;
 	onRespond: (approvalId: string, decision: Decision) => void;
@@ -87,6 +89,7 @@ export type TurnGroupSectionProps = {
  */
 export function TurnGroupSection({
 	canForkToWorktree,
+	childrenByParent,
 	commands,
 	lastReply,
 	isEntryCollapsed,
@@ -98,6 +101,7 @@ export function TurnGroupSection({
 	row,
 	snapshot,
 }: TurnGroupSectionProps) {
+	const { t } = useLingui();
 	const harness = snapshot.session?.harness;
 	switch (row.kind) {
 		case "working":
@@ -107,13 +111,18 @@ export function TurnGroupSection({
 					startedAtMs={row.startedAtMs}
 				/>
 			);
-		case "item":
+		case "item": {
+			const asker = approvalAsker(snapshot.items, row.item);
 			return (
 				<>
 					<ItemRow
 						afterTarget={row.afterTarget}
 						approvalTarget={approvalTarget(snapshot, row.item)}
+						asker={
+							asker ? asker.title || t({ message: "Subagent" }) : undefined
+						}
 						canForkToWorktree={canForkToWorktree}
+						childItems={childrenByParent.get(row.item.id)}
 						commands={commands}
 						lastReply={lastReply}
 						harness={harness}
@@ -127,6 +136,7 @@ export function TurnGroupSection({
 					{pageCards(row.pages)}
 				</>
 			);
+		}
 		case "outbox":
 			return (
 				<ItemRow
@@ -146,6 +156,7 @@ export function TurnGroupSection({
 			return (
 				<>
 					<ToolRunRow
+						childLists={row.items.map((tool) => childrenByParent.get(tool.id))}
 						collapsed={isEntryCollapsed(row.key, row.defaultCollapsed)}
 						items={row.items}
 						onToggle={onToggleEntry}

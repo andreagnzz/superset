@@ -806,6 +806,9 @@ msgstr "{count, plural, one {#件のソースを使用} other {#件のソース�
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {#件のツールを使用} other {#件のツールを使用}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, other {サブエージェント # 件を待機中}}"
+
 msgid "{count} GitHub stars"
 msgstr "GitHubスター{count}件"
 
@@ -972,6 +975,18 @@ msgstr "自分のオートメーションのうち{myFailedCount}件が前回の
 msgid "{name} accounts"
 msgstr "{name} のアカウント"
 
+msgid "{name} asks"
+msgstr "{name} からの確認"
+
+msgid "{name} can't be messaged"
+msgstr "{name} にはメッセージを送れません"
+
+msgid "{name} failed"
+msgstr "{name} が失敗しました"
+
+msgid "{name} finished"
+msgstr "{name} が完了しました"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} は組み込みのため削除できません"
@@ -986,6 +1001,12 @@ msgstr "{name} は追加されていません"
 
 msgid "{name} plugin"
 msgstr "{name} プラグイン"
+
+msgid "{name} started working"
+msgstr "{name} が作業を開始しました"
+
+msgid "{name} stopped"
+msgstr "{name} が停止しました"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {人を1人以上指定するか、{choice}を選択してください。} sender {送信者を1人以上指定するか、{choice}を選択してください。} other {項目を1つ以上指定するか、{choice}を選択してください。}}"
@@ -1090,6 +1111,9 @@ msgstr "{selectedCount}件選択中"
 msgid "{share}% human"
 msgstr "人間{share}%"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, other {シェル # 件}}"
+
 msgid "{shown} of {total}"
 msgstr "{total}件中{shown}件"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {#件のオートメーションを開始しまし
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 件のサブエージェントが実行中}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {サブエージェント # 件}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {#件のワークスペースを作成、{failCount}件失敗} other {#件のワークスペースを作成、{failCount}件失敗}}"
@@ -2903,14 +2930,8 @@ msgstr "背景"
 msgid "Background processes"
 msgstr "バックグラウンドプロセス"
 
-msgid "Background task"
-msgstr "バックグラウンドタスク"
-
 msgid "Background terminal memory"
 msgstr "バックグラウンドターミナルのメモリ"
-
-msgid "Background work and pages"
-msgstr "バックグラウンド作業とページ"
 
 msgid "Backlog"
 msgstr "バックログ"
@@ -5212,6 +5233,9 @@ msgstr "レビュー準備完了にできませんでした"
 
 msgid "Couldn't merge pull request"
 msgstr "プルリクエストをマージできませんでした"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "サブエージェントをバックグラウンドに移動できませんでした"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "「{name}」に自動で名前を付けられませんでした"
@@ -7944,6 +7968,9 @@ msgstr "元:"
 msgid "From"
 msgstr "移動元"
 
+msgid "from {parentName}"
+msgstr "{parentName} から"
+
 msgid "from {price}/user/mo"
 msgstr "{price}/ユーザー/月〜"
 
@@ -7952,6 +7979,9 @@ msgstr "ハッカソンのプロジェクトから、並列コーディングエ
 
 msgid "From GitHub"
 msgstr "GitHub から"
+
+msgid "from main agent"
+msgstr "メインエージェントから"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "フロントマターは非表示です — 編集するにはMarkdownに切り替えてください"
@@ -10221,6 +10251,9 @@ msgstr "マージ中…"
 msgid "Mesh Gradient"
 msgstr "Mesh Gradient"
 
+msgid "Message {name}…"
+msgstr "{name} へのメッセージ…"
+
 msgid "Message in channel"
 msgstr "チャンネルのメッセージ"
 
@@ -10427,6 +10460,12 @@ msgstr "ソフトウェアの歴史のほとんど"
 msgid "Move {count} to Group"
 msgstr "{count}件をグループへ移動"
 
+msgid "Move {name} to background"
+msgstr "{name} をバックグラウンドに移動"
+
+msgid "Move to background"
+msgstr "バックグラウンドに移動"
+
 msgid "Move to group"
 msgstr "グループへ移動"
 
@@ -10527,6 +10566,9 @@ msgstr "再実行が必要"
 
 msgid "Needs Action"
 msgstr "対応が必要"
+
+msgid "needs approval"
+msgstr "承認が必要"
 
 msgid "Needs attention"
 msgstr "要対応"
@@ -16397,8 +16439,8 @@ msgstr "{0}を停止"
 msgid "Stop {label}"
 msgstr "{label} を停止"
 
-msgid "Stop all agent background processes"
-msgstr "エージェントのバックグラウンドプロセスをすべて停止"
+msgid "Stop {name}"
+msgstr "{name} を停止"
 
 msgid "Stop dictation"
 msgstr "音声入力を停止"
@@ -17848,6 +17890,9 @@ msgstr "このスラッグは使用済みです"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "組織内のすべてのTeamsトリガーが停止し、テナントから通知サブスクリプションが削除されます。いつでも再接続できます。"
 
+msgid "This subagent can't move to the background now"
+msgstr "このサブエージェントは今はバックグラウンドに移動できません"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "このサブエージェントはホストで追跡されなくなりました。トランスクリプトはエージェントのセッションディレクトリにディスク上で残ります。"
 
@@ -17974,6 +18019,9 @@ msgstr "タイトル"
 
 msgid "To"
 msgstr "移動先"
+
+msgid "to {name}"
+msgstr "{name} へ"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "エージェントとの会話を再開するには、そのフォルダで次を実行します:"
@@ -18610,6 +18658,12 @@ msgstr "ファイルを添付するには、このマシンでSupersetを更新�
 
 msgid "update the branch prefix"
 msgstr "ブランチのプレフィックスを更新する"
+
+msgid "Update this host to message subagents"
+msgstr "サブエージェントにメッセージを送るには、このホストを更新してください"
+
+msgid "Update this host to move subagents to the background"
+msgstr "サブエージェントをバックグラウンドに移動するには、このホストを更新してください"
 
 msgid "Updated"
 msgstr "更新済み"

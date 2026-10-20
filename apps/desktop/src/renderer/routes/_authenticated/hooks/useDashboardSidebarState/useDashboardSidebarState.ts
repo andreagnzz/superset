@@ -1,3 +1,4 @@
+import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
 import type { Pane } from "@superset/panes";
 import {
 	normalizeWorkspaceTag,
@@ -8,7 +9,6 @@ import {
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import {

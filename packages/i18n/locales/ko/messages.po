@@ -806,6 +806,9 @@ msgstr "{count, plural, one {출처 #개 사용} other {출처 #개 사용}}"
 msgid "{count, plural, one {used # tool} other {used # tools}}"
 msgstr "{count, plural, one {도구 #개 사용} other {도구 #개 사용}}"
 
+msgid "{count, plural, one {waiting on # subagent} other {waiting on # subagents}}"
+msgstr "{count, plural, other {서브 에이전트 #개 대기 중}}"
+
 msgid "{count} GitHub stars"
 msgstr "GitHub 스타 {count}개"
 
@@ -972,6 +975,18 @@ msgstr "내 자동화 {myFailedCount}개가 마지막 실행에 실패했습니�
 msgid "{name} accounts"
 msgstr "{name} 계정"
 
+msgid "{name} asks"
+msgstr "{name}의 요청"
+
+msgid "{name} can't be messaged"
+msgstr "{name}에게 메시지를 보낼 수 없습니다"
+
+msgid "{name} failed"
+msgstr "{name} 실패"
+
+msgid "{name} finished"
+msgstr "{name} 완료"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name}은(는) 기본 제공이라 제거할 수 없습니다"
@@ -986,6 +1001,12 @@ msgstr "{name}이(가) 추가되지 않았습니다"
 
 msgid "{name} plugin"
 msgstr "{name} 플러그인"
+
+msgid "{name} started working"
+msgstr "{name} 작업 시작"
+
+msgid "{name} stopped"
+msgstr "{name} 중지됨"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {사람을 한 명 이상 지정하거나 {choice} 옵션을 선택하세요.} sender {발신자를 한 명 이상 지정하거나 {choice} 옵션을 선택하세요.} other {항목을 하나 이상 지정하거나 {choice} 옵션을 선택하세요.}}"
@@ -1090,6 +1111,9 @@ msgstr "{selectedCount}개 선택됨"
 msgid "{share}% human"
 msgstr "사람 {share}%"
 
+msgid "{shellCount, plural, one {# shell} other {# shells}}"
+msgstr "{shellCount, plural, other {셸 #개}}"
+
 msgid "{shown} of {total}"
 msgstr "{total}개 중 {shown}개"
 
@@ -1109,6 +1133,9 @@ msgstr "{started, plural, one {자동화 #개를 시작했습니다} other {자�
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {서브 에이전트 #개 실행 중}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {서브 에이전트 #개}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다} other {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다}}"
@@ -2903,14 +2930,8 @@ msgstr "배경"
 msgid "Background processes"
 msgstr "백그라운드 프로세스"
 
-msgid "Background task"
-msgstr "백그라운드 작업"
-
 msgid "Background terminal memory"
 msgstr "백그라운드 터미널 메모리"
-
-msgid "Background work and pages"
-msgstr "백그라운드 작업 및 페이지"
 
 msgid "Backlog"
 msgstr "백로그"
@@ -5212,6 +5233,9 @@ msgstr "리뷰 준비 완료로 표시할 수 없습니다"
 
 msgid "Couldn't merge pull request"
 msgstr "풀 리퀘스트를 머지하지 못했습니다"
+
+msgid "Couldn't move the subagent to the background"
+msgstr "서브 에이전트를 백그라운드로 옮기지 못했습니다"
 
 msgid "Couldn't name \"{name}\" automatically"
 msgstr "\"{name}\"의 이름을 자동으로 지정하지 못했습니다"
@@ -7944,6 +7968,9 @@ msgstr "기준"
 msgid "From"
 msgstr "기존 위치"
 
+msgid "from {parentName}"
+msgstr "{parentName}에서"
+
 msgid "from {price}/user/mo"
 msgstr "사용자당 월 {price}부터"
 
@@ -7952,6 +7979,9 @@ msgstr "해커톤 프로젝트에서 병렬 코딩 에이전트를 위한 워크
 
 msgid "From GitHub"
 msgstr "GitHub에서"
+
+msgid "from main agent"
+msgstr "메인 에이전트에서"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "프런트매터 숨김 — 편집하려면 Markdown으로 전환하세요"
@@ -10221,6 +10251,9 @@ msgstr "머지 중…"
 msgid "Mesh Gradient"
 msgstr "메시 그라데이션"
 
+msgid "Message {name}…"
+msgstr "{name}에게 메시지…"
+
 msgid "Message in channel"
 msgstr "채널 내 메시지"
 
@@ -10427,6 +10460,12 @@ msgstr "소프트웨어 역사의 대부분"
 msgid "Move {count} to Group"
 msgstr "{count}개를 그룹으로 이동"
 
+msgid "Move {name} to background"
+msgstr "{name}을(를) 백그라운드로 이동"
+
+msgid "Move to background"
+msgstr "백그라운드로 이동"
+
 msgid "Move to group"
 msgstr "그룹으로 이동"
 
@@ -10527,6 +10566,9 @@ msgstr "재시도 필요"
 
 msgid "Needs Action"
 msgstr "조치 필요"
+
+msgid "needs approval"
+msgstr "승인 필요"
 
 msgid "Needs attention"
 msgstr "확인 필요"
@@ -16397,8 +16439,8 @@ msgstr "{0} 정지"
 msgid "Stop {label}"
 msgstr "{label} 중지"
 
-msgid "Stop all agent background processes"
-msgstr "모든 에이전트 백그라운드 프로세스 중지"
+msgid "Stop {name}"
+msgstr "{name} 중지"
 
 msgid "Stop dictation"
 msgstr "받아쓰기 중지"
@@ -17848,6 +17890,9 @@ msgstr "이미 사용 중인 슬러그입니다"
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "조직의 모든 Teams 트리거가 중지되고 테넌트에서 알림 구독이 제거됩니다. 언제든지 다시 연결할 수 있습니다."
 
+msgid "This subagent can't move to the background now"
+msgstr "이 서브 에이전트는 지금 백그라운드로 옮길 수 없습니다"
+
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "이 서브 에이전트는 더 이상 호스트에서 추적되지 않습니다. 기록은 에이전트의 세션 디렉터리에 디스크로 남아 있습니다."
 
@@ -17974,6 +18019,9 @@ msgstr "제목"
 
 msgid "To"
 msgstr "새 위치"
+
+msgid "to {name}"
+msgstr "{name}에게"
 
 msgid "To resume an agent conversation, run this in its folder:"
 msgstr "에이전트 대화를 재개하려면 해당 폴더에서 다음을 실행하세요:"
@@ -18610,6 +18658,12 @@ msgstr "파일을 첨부하려면 이 컴퓨터에서 Superset을 업데이트�
 
 msgid "update the branch prefix"
 msgstr "브랜치 접두사를 업데이트할"
+
+msgid "Update this host to message subagents"
+msgstr "서브 에이전트에게 메시지를 보내려면 이 호스트를 업데이트하세요"
+
+msgid "Update this host to move subagents to the background"
+msgstr "서브 에이전트를 백그라운드로 옮기려면 이 호스트를 업데이트하세요"
 
 msgid "Updated"
 msgstr "업데이트됨"

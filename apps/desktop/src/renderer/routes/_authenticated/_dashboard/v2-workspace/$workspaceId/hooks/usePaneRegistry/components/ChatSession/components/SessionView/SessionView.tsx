@@ -8,6 +8,7 @@ import {
 } from "@superset/chat/core";
 import type {
 	AvailableCommand,
+	BackgroundTask,
 	Decision,
 	SessionConfigOption,
 	SessionState,
@@ -20,11 +21,11 @@ import {
 } from "@superset/chat/react";
 import { ComposerDropZone } from "@superset/chat-ui/ComposerDropZone";
 import { MessageScroller } from "@superset/chat-ui/MessageScroller";
-import type { PromptInputHandle } from "@superset/chat-ui/PromptInput";
 import { ChatHistorySidebarScroller } from "@superset/ui/chat-history-sidebar";
 import { toast } from "@superset/ui/sonner";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions";
 import type { OpenFile } from "../../../../../../types";
 import {
 	ChatPaneActionsProvider,
@@ -41,17 +42,32 @@ import {
 	type AgentChoice,
 	type AgentSwitcher,
 	Composer,
+	type ComposerHandle,
 	prependToDraft,
 } from "../Composer";
 import { ConnectionNotice } from "../ConnectionNotice";
 import { SessionHeader } from "../SessionHeader";
+import { SubagentView } from "../SubagentView";
 import { Transcript } from "../Transcript";
+import { useChildrenByParent } from "../Transcript/hooks/useChildrenByParent";
+import { NestedItemsProvider } from "../Transcript/providers/NestedItemsProvider";
+import { TranscriptPluginsProvider } from "../Transcript/providers/TranscriptPluginsProvider";
+import {
+	type DrawerExit,
+	WorkDrawer,
+	type WorkDrawerHandle,
+} from "../WorkDrawer";
+import { useMainSend } from "./hooks/useMainSend";
+import { useMoveToBackground } from "./hooks/useMoveToBackground";
 import { useStableList } from "./hooks/useStableList";
-import { composerAnswer } from "./utils/composerAnswer";
+import { useSubagentNavigation } from "./hooks/useSubagentNavigation";
+import { useSubagentTarget } from "./hooks/useSubagentTarget";
+import { escapeBack } from "./utils/escapeBack";
 
 const RESUME_FOLLOW_PX = 24;
 const NO_COMMANDS: AvailableCommand[] = [];
 const NO_CONFIG_OPTIONS: SessionConfigOption[] = [];
+const NO_TASKS: BackgroundTask[] = [];
 
 const MODEL_OPTIONS_GRACE_MS = 1000;
 
@@ -64,6 +80,7 @@ export function SessionView({
 	agentLabel,
 	agentSwitch,
 	canForkToWorktree,
+	chatKey,
 	client,
 	draftKey,
 	headerLeft,
@@ -83,6 +100,7 @@ export function SessionView({
 	workspaceId,
 }: {
 	client: SessionClient;
+	chatKey: string;
 	presetId?: string;
 	draftKey: string;
 	workspaceId: string;
@@ -129,8 +147,9 @@ export function SessionView({
 }) {
 	const { t } = useLingui();
 	const session = useChatSession({ client });
-	const composerRef =
-		useRef<Pick<PromptInputHandle, "appendText" | "focus">>(null);
+	const composerRef = useRef<ComposerHandle>(null);
+	const drawerRef = useRef<WorkDrawerHandle>(null);
+	const paneRef = useRef<HTMLDivElement>(null);
 	const { outbox, discardPrompt } = session;
 	useEffect(() => {
 		const failed = outbox.filter(
@@ -164,7 +183,7 @@ export function SessionView({
 		},
 		[draftKey],
 	);
-	const timeline = useTimeline(session.snapshot);
+	const timeline = useTimeline(session.snapshot, { nestChildItems: true });
 	const rail = useStableList(
 		useMemo(() => railMessages(timeline), [timeline]),
 		(previous, next) =>
@@ -240,6 +259,19 @@ export function SessionView({
 	const focusComposer = useCallback(() => composerRef.current?.focus(), []);
 	const [revealMessageId, setRevealMessageId] = useState<string | null>(null);
 	const clearRevealMessage = useCallback(() => setRevealMessageId(null), []);
+	const returnToComposer = useCallback(
+		(exit: DrawerExit) => composerRef.current?.returnFocus(exit === "history"),
+		[],
+	);
+	const appendToComposer = useCallback(
+		(text: string) => composerRef.current?.appendText(text),
+		[],
+	);
+	const enterDrawer = useCallback(
+		(options: { actionableOnly: boolean }) =>
+			drawerRef.current?.focusLast(options) ?? false,
+		[],
+	);
 	const timelineRef = useRef(timeline);
 	timelineRef.current = timeline;
 	const snapshotRef = useRef(session.snapshot);
@@ -282,6 +314,7 @@ export function SessionView({
 		sendPrompt,
 		setConfigOption,
 		setMode,
+		stopBackgroundTask,
 	} = session;
 	const loaded = session.status === "ready";
 	const onRespond = useCallback(
@@ -331,49 +364,89 @@ export function SessionView({
 		[editable, onEditMessage, runningTurnId, agentLabel, t],
 	);
 	const holdPrompt = held?.onQueue;
-	const onSend = useCallback(
-		(content: UserContent[], { steer }: { steer: boolean }) => {
-			onUserPrompt?.();
-			if (holdPrompt) return holdPrompt(content);
-			const pending = loaded ? approvals : [];
-			const [question] = pending;
-			const answer =
-				pending.length === 1 && question
-					? composerAnswer(question, content)
-					: null;
-			if (question && answer) {
-				return respondToApproval(question.id, answer).catch(() => {
-					composerRef.current?.appendText(contentText(content));
-					composerRef.current?.focus();
-					toast.error(
-						t({
-							message: "Couldn't send your message. It's back in the composer.",
-						}),
-					);
-				});
-			}
-			for (const approval of pending) {
-				void respondToApproval(approval.id, { type: "cancel" });
-			}
-			const steerTurn = steer || pending.length > 0;
-			return sendPrompt(
-				content,
-				steerTurn && runningTurnId
-					? { expectedTurnId: runningTurnId }
-					: undefined,
+	const onAnswerFailed = useCallback(
+		(content: UserContent[]) => {
+			composerRef.current?.appendText(contentText(content));
+			composerRef.current?.focus();
+			toast.error(
+				t({
+					message: "Couldn't send your message. It's back in the composer.",
+				}),
 			);
 		},
+		[t],
+	);
+	const onSend = useMainSend({
+		approvals,
+		holdPrompt,
+		loaded,
+		onAnswerFailed,
+		onUserPrompt,
+		respondToApproval,
+		runningTurnId,
+		sendPrompt,
+	});
+	const {
+		focusedId: focusedSubagentId,
+		openSubagent,
+		goBack,
+	} = useSubagentNavigation({
+		chatKey,
+		items: session.snapshot.items,
+	});
+	const shownSubagentId = useRef(focusedSubagentId);
+	useEffect(() => {
+		if (shownSubagentId.current === focusedSubagentId) return;
+		shownSubagentId.current = focusedSubagentId;
+		focusComposer();
+	}, [focusedSubagentId, focusComposer]);
+	const restoreUnsent = useCallback((content: UserContent[]) => {
+		composerRef.current?.appendText(contentText(content));
+		composerRef.current?.focus();
+	}, []);
+	const onStopTask = useCallback(
+		(taskId: string) =>
+			void stopBackgroundTask(taskId)
+				.then((stopped) => {
+					if (!stopped) throw new Error("the agent did not stop the task");
+				})
+				.catch((error: unknown) => {
+					console.warn("[SessionView] could not stop task", error);
+					toast.error(t({ message: "Couldn't stop the background task" }));
+				}),
+		[stopBackgroundTask, t],
+	);
+	const subagent = useSubagentTarget({
+		client,
+		items: session.snapshot.items,
+		focusedId: focusedSubagentId,
+		draftKey,
+		onSend,
+		onStop: onStopTask,
+		onUnsent: restoreUnsent,
+	});
+	const onBackgroundSubagent = useMoveToBackground(client);
+	const plugins = usePluginMentionOptions();
+	const childrenByParent = useChildrenByParent(session.snapshot);
+	const nestedItems = useMemo(
+		() => ({
+			snapshot: session.snapshot,
+			childrenByParent,
+			requestItemBodies: session.requestItemBodies,
+			respondToApproval: onRespond,
+			openSubagent,
+			moveToBackground: onBackgroundSubagent,
+		}),
 		[
-			holdPrompt,
-			loaded,
-			approvals,
-			respondToApproval,
-			sendPrompt,
-			runningTurnId,
-			t,
-			onUserPrompt,
+			session.snapshot,
+			childrenByParent,
+			session.requestItemBodies,
+			onRespond,
+			openSubagent,
+			onBackgroundSubagent,
 		],
 	);
+	const backgroundTasks = sessionState?.backgroundTasks ?? NO_TASKS;
 	const awaitingBackground = sessionState?.awaitingBackground === true;
 	const onCancelTurn = useMemo(
 		() =>
@@ -407,6 +480,8 @@ export function SessionView({
 		[heldQueued],
 	);
 	const booting = sessionState?.status === "starting";
+	const composerQueue = heldQueue ?? (held ? undefined : promptQueue);
+	const drawerQueue = subagent.target === undefined ? composerQueue : undefined;
 
 	// w-full because the pane lays its children out in a row: without it this
 	// sizes to its content and leaves the right of the pane empty.
@@ -419,7 +494,11 @@ export function SessionView({
 			openLink={openLink}
 			workspaceId={workspaceId}
 		>
-			<ComposerDropZone className="flex h-full min-h-0 w-full min-w-0 flex-col">
+			<ComposerDropZone
+				className="flex h-full min-h-0 w-full min-w-0 flex-col"
+				onKeyDown={escapeBack(focusedSubagentId ? goBack : undefined)}
+				ref={paneRef}
+			>
 				{/* Only worth a row when it carries a control: the pane header above
 				    already names the agent, and harness/status/connection repeated
 				    under it read louder than the transcript. */}
@@ -437,26 +516,34 @@ export function SessionView({
 					scrollPreviousItemPeek={0}
 				>
 					<div className="@container relative flex min-h-0 flex-1">
-						<Transcript
-							approvals={approvals}
-							canForkToWorktree={canForkToWorktree}
-							groups={timeline}
-							hasOlder={session.hasOlder}
-							isActive={isActive}
-							onCloseFind={focusComposer}
-							onDiscardPrompt={session.discardPrompt}
-							onFork={onFork ? forkWithTranscript : undefined}
-							onLoadOlder={loadOlder}
-							onRequestItemBodies={session.requestItemBodies}
-							onRespond={onRespond}
-							onMessageRevealed={clearRevealMessage}
-							onRetryPrompt={session.retryPrompt}
-							outbox={session.outbox}
-							revealMessageId={revealMessageId}
-							sessionId={client.sessionId}
-							snapshot={session.snapshot}
-						/>
-						{rail.length > 1 && (
+						<TranscriptPluginsProvider value={plugins}>
+							<NestedItemsProvider value={nestedItems}>
+								{focusedSubagentId ? (
+									<SubagentView itemId={focusedSubagentId} />
+								) : (
+									<Transcript
+										approvals={approvals}
+										canForkToWorktree={canForkToWorktree}
+										groups={timeline}
+										hasOlder={session.hasOlder}
+										isActive={isActive}
+										onCloseFind={focusComposer}
+										onDiscardPrompt={session.discardPrompt}
+										onFork={onFork ? forkWithTranscript : undefined}
+										onLoadOlder={loadOlder}
+										onRequestItemBodies={session.requestItemBodies}
+										onRespond={onRespond}
+										onMessageRevealed={clearRevealMessage}
+										onRetryPrompt={session.retryPrompt}
+										outbox={session.outbox}
+										revealMessageId={revealMessageId}
+										sessionId={client.sessionId}
+										snapshot={session.snapshot}
+									/>
+								)}
+							</NestedItemsProvider>
+						</TranscriptPluginsProvider>
+						{!focusedSubagentId && rail.length > 1 && (
 							<ChatHistorySidebarScroller
 								className="absolute inset-y-0 left-0 my-auto hidden h-fit max-h-full flex-col pl-3 @[56rem]:flex"
 								messages={rail}
@@ -474,6 +561,19 @@ export function SessionView({
 						</ConnectionNotice>
 					)
 				)}
+				<WorkDrawer
+					approvals={approvals}
+					onAppendToComposer={appendToComposer}
+					onExit={returnToComposer}
+					onMoveToBackground={onBackgroundSubagent}
+					onOpenSubagent={openSubagent}
+					onStop={onStopTask}
+					paneRef={paneRef}
+					queue={drawerQueue}
+					ref={drawerRef}
+					snapshot={session.snapshot}
+					tasks={backgroundTasks}
+				/>
 				<Composer
 					presetId={presetId}
 					agentSwitcher={agentSwitcher}
@@ -483,13 +583,17 @@ export function SessionView({
 					modes={sessionState?.availableModes}
 					currentModeId={sessionState?.modeId}
 					onSetMode={onSetMode}
-					draftKey={draftKey}
+					draftKey={subagent.draftKey}
+					draftPersisted={subagent.target === undefined}
 					inputRef={composerRef}
 					history={history}
 					isActive={isActive}
 					onCancelTurn={onCancelTurn}
-					onSend={onSend}
-					promptQueue={heldQueue ?? (held ? undefined : promptQueue)}
+					escapeGoesBack={focusedSubagentId !== null}
+					onEnterDrawer={enterDrawer}
+					onSend={subagent.onSend}
+					target={subagent.target}
+					canQueue={composerQueue !== undefined}
 					workspaceId={workspaceId}
 				/>
 			</ComposerDropZone>

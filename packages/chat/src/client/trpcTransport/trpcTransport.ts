@@ -8,6 +8,8 @@ type Mutation =
 	| "resumeQueue"
 	| "cancelTurn"
 	| "stopBackgroundTask"
+	| "steerSubagent"
+	| "backgroundSubagent"
 	| "respondToApproval"
 	| "setMode"
 	| "setConfigOption"
@@ -41,6 +43,8 @@ export function chatTransportFromTrpc(client: ChatTrpcClient): ChatTransport {
 		resumeQueue: (input) => client.resumeQueue.mutate(input),
 		cancelTurn: (input) => client.cancelTurn.mutate(input),
 		stopBackgroundTask: (input) => client.stopBackgroundTask.mutate(input),
+		steerSubagent: (input) => client.steerSubagent.mutate(input),
+		backgroundSubagent: (input) => client.backgroundSubagent.mutate(input),
 		respondToApproval: (input) => client.respondToApproval.mutate(input),
 		setMode: (input) => client.setMode.mutate(input),
 		setConfigOption: (input) => client.setConfigOption.mutate(input),
