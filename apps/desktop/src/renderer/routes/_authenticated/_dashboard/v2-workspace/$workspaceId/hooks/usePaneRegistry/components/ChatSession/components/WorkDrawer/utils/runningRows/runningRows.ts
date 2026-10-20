@@ -47,6 +47,16 @@ export function runningRows(
 		owners.set(id, owner);
 		counts.set(owner, (counts.get(owner) ?? 0) + 1);
 	}
+	const askingRows = new Set<string>();
+	for (const id of asking) {
+		let row = id;
+		const seen = new Set<string>();
+		while (owners.has(row) && !seen.has(row)) {
+			seen.add(row);
+			row = owners.get(row) ?? row;
+		}
+		askingRows.add(row);
+	}
 	return tasks.flatMap((task): RunningRow[] => {
 		const step =
 			liveStream(snapshot, "background", task.id) || task.detail || undefined;
@@ -76,7 +86,7 @@ export function runningRows(
 				step: runningSubagents > 0 ? waitingLabel(runningSubagents) : step,
 				canStop: item?.canStop ?? task.canStop,
 				canBackground: (item?.canBackground ?? task.canBackground) === true,
-				needsApproval: asking.has(task.id),
+				needsApproval: askingRows.has(task.id),
 				runningSubagents,
 			},
 		];

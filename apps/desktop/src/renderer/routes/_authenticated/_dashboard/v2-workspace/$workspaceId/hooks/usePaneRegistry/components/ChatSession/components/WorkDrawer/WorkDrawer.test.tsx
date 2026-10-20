@@ -613,3 +613,31 @@ test("a subagent waiting on an approval says so", () => {
 	});
 	expect(answered.view.container.textContent).not.toContain("needs approval");
 });
+
+test("a folded subagent's approval flags the row it folds into", () => {
+	const inner: ToolCall = {
+		...exploreItem,
+		id: "subagent:i1",
+		title: "inner",
+		parentItemId: "subagent:c1",
+	};
+	const approval: ApprovalRequest = {
+		id: "approval:sub:i1:bash-1",
+		kind: "approval_request",
+		targetItemId: "sub:i1:bash-1",
+		parentItemId: "subagent:i1",
+		title: "Allow Bash?",
+		status: "pending",
+		startedAtMs: 3,
+	};
+	const { view } = renderDrawer({
+		tasks: [exploreTask, { ...exploreTask, id: "subagent:i1" }],
+		items: [exploreItem, inner, approval],
+	});
+	const rows = view.getAllByRole("option");
+	expect(rows).toHaveLength(1);
+	expect(rows[0]?.getAttribute("aria-label")).toContain("needs approval");
+	const header = view.getByRole("button", { name: /^Running 1/ });
+	fireEvent.click(header);
+	expect(header.textContent).toContain("1 needs approval");
+});
