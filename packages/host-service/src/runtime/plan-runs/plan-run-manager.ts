@@ -13,6 +13,8 @@ import {
 import type { PlanRun, PlanRunIssue, PlanRunStore } from "./store";
 
 const MAX_ATTEMPTS = 2;
+// A Stop hook sent while the host was down is lost; the transcript is not.
+const STALE_STATE_MS = 2 * 60_000;
 const NUDGE_TEXT =
 	"End your final message with the SUPERSET_WORKER_DONE or SUPERSET_WORKER_BLOCKED envelope from your instructions, for this issue's key.";
 
@@ -227,13 +229,16 @@ export class PlanRunManager {
 		if (state === "gone") {
 			return this.fail(run, issue, rules, "the agent's terminal ended");
 		}
-		if (state !== "idle") return;
+		const stale =
+			lastEventAt !== undefined && this.now() - lastEventAt > STALE_STATE_MS;
+		if (state !== "idle" && !stale) return;
 		if (issue.nudgedAt !== undefined && (lastEventAt ?? 0) <= issue.nudgedAt) {
 			return;
 		}
 		const answer = await this.deps.readAnswer(issue);
 		if (answer === null) return;
 		const envelope = parseWorkerEnvelope(answer, issue.key);
+		if (state !== "idle" && !envelope) return;
 		if (envelope?.kind === "done") {
 			issue.status = "done";
 			issue.summary = envelope.summary;

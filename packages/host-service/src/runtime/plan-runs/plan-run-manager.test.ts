@@ -91,7 +91,23 @@ function setup(
 		Object.fromEntries(
 			((await manager.list())[0]?.issues ?? []).map((i) => [i.key, i.status]),
 		);
-	return { dir, agents, manager, launches, nudges, stop, envelope, statuses };
+	const setAgent = (key: string, agent: PlanAgentState & { answer?: string }) =>
+		agents.set(`t-${key}-1`, agent);
+	const advance = (ms: number) => {
+		clock += ms;
+	};
+	return {
+		dir,
+		agents,
+		manager,
+		launches,
+		nudges,
+		stop,
+		envelope,
+		statuses,
+		setAgent,
+		advance,
+	};
 }
 
 describe("PlanRunManager", () => {
@@ -195,6 +211,34 @@ describe("PlanRunManager", () => {
 			B: "running",
 			C: "running",
 		});
+	});
+
+	it("reads a stale working agent's answer, as after a Stop the host missed", async () => {
+		const { manager, launches, statuses, setAgent, advance } = setup();
+		const run = await manager.importRun({
+			projectId: "p",
+			name: "demo",
+			maxParallel: 1,
+			issues: [issue("A")],
+		});
+		await manager.start(run.id);
+		await manager.tick();
+		setAgent("A", {
+			state: "working",
+			lastEventAt: 1_000,
+			answer: "Still going.",
+		});
+		advance(10 * 60_000);
+		await manager.tick();
+		expect(await statuses()).toEqual({ A: "running" });
+		setAgent("A", {
+			state: "working",
+			lastEventAt: 1_000,
+			answer: "SUPERSET_WORKER_DONE\ntask: A\nsummary: ok",
+		});
+		await manager.tick();
+		expect(await statuses()).toEqual({ A: "done" });
+		expect(launches).toHaveLength(1);
 	});
 
 	it("rejects an invalid plan on import", async () => {
