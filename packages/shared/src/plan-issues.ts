@@ -204,3 +204,56 @@ export function parseWorkerEnvelope(
 	}
 	return null;
 }
+
+export const REVIEW_SEVERITIES = ["blocker", "major", "minor"] as const;
+
+export type ReviewFinding = {
+	file: string;
+	line: number | null;
+	severity: (typeof REVIEW_SEVERITIES)[number];
+	fix: string;
+};
+
+export type ReviewVerdict = { approve: boolean; findings: ReviewFinding[] };
+
+/** A reviewer's verdict.json; `approve` may not stand beside a blocker or major. */
+export function checkReviewVerdict(raw: unknown): {
+	verdict: ReviewVerdict | null;
+	errors: string[];
+} {
+	if (!isRecord(raw)) return { verdict: null, errors: ["must be an object"] };
+	const errors: string[] = [];
+	if (typeof raw.approve !== "boolean")
+		errors.push("approve must be a boolean");
+	if (!Array.isArray(raw.findings)) errors.push("findings must be an array");
+	const findings: ReviewFinding[] = [];
+	for (const [index, item] of (Array.isArray(raw.findings)
+		? raw.findings
+		: []
+	).entries()) {
+		const severity = isRecord(item)
+			? REVIEW_SEVERITIES.find((level) => level === item.severity)
+			: undefined;
+		if (!isRecord(item) || !isFilled(item.file) || !isFilled(item.fix)) {
+			errors.push(`findings[${index}]: needs file and fix`);
+		} else if (!severity) {
+			errors.push(
+				`findings[${index}]: severity must be ${REVIEW_SEVERITIES.join(", ")}`,
+			);
+		} else {
+			findings.push({
+				file: item.file,
+				line: typeof item.line === "number" ? item.line : null,
+				severity,
+				fix: item.fix,
+			});
+		}
+	}
+	if (raw.approve === true && findings.some((f) => f.severity !== "minor")) {
+		errors.push("approve must be false while a finding is blocker or major");
+	}
+	if (errors.length > 0 || typeof raw.approve !== "boolean") {
+		return { verdict: null, errors };
+	}
+	return { verdict: { approve: raw.approve, findings }, errors };
+}

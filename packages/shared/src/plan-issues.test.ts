@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	checkPlanIssues,
+	checkReviewVerdict,
 	dependentKeys,
 	parseWorkerEnvelope,
 	readyIssueKeys,
@@ -93,4 +94,21 @@ describe("parseWorkerEnvelope", () => {
 			reason: "needs a token",
 		});
 	});
+});
+
+it("checkReviewVerdict refuses an approval beside a blocking finding", () => {
+	const finding = { file: "a.js", line: 3, severity: "major", fix: "guard" };
+	expect(
+		checkReviewVerdict({ approve: true, findings: [finding] }).verdict,
+	).toBeNull();
+	expect(
+		checkReviewVerdict({ approve: false, findings: [finding] }).verdict
+			?.findings,
+	).toHaveLength(1);
+	expect(
+		checkReviewVerdict({ approve: true, findings: [] }).verdict?.approve,
+	).toBe(true);
+	expect(checkReviewVerdict({ approve: "yes" }).errors).toContain(
+		"approve must be a boolean",
+	);
 });
