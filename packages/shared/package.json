@@ -305,6 +305,10 @@
 			"types": "./src/agent-models.ts",
 			"default": "./src/agent-models.ts"
 		},
+		"./agent-launch-estimator": {
+			"types": "./src/agent-launch-estimator.ts",
+			"default": "./src/agent-launch-estimator.ts"
+		},
 		"./billing": {
 			"types": "./src/billing.ts",
 			"default": "./src/billing.ts"
