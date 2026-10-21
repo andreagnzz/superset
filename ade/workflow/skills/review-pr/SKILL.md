@@ -42,12 +42,12 @@ EOF
    ```bash
    R=$(superset agents create --local --workspace "$W" --agent claude \
      --model "$(jq -r .model <<<"$ROLE")" --effort "$(jq -r .effort <<<"$ROLE")" \
-     --prompt "$(cat "$PROMPT_FILE")" --json | jq -r .sessionId)
+     --prompt="$(cat "$PROMPT_FILE")" --json | jq -r .sessionId)
    superset agents wait --local --workspace "$W" --terminal "$R" --until settled --timeout 900 --json
    ```
 
    On a timeout, wait again (twice at most). If the state is `blocked`, read the screen (`superset terminals read … --max-lines 80 --json`) and answer only a permission prompt.
-4. Check the verdict: `bun "$ADE" verdict "$WT/.superset-review/verdict.json"`. If it fails, send the error to the reviewer once (`superset terminals send --local --workspace "$W" --terminal "$R" --text "<error, fix the verdict file>" --wait --until settled --timeout 600`) and check again. Still invalid: this round is "changes requested" with the single finding `reviewer produced no valid verdict`.
+4. Check the verdict: `bun "$ADE" verdict "$WT/.superset-review/verdict.json"`. If it fails, send the error to the reviewer once (`superset terminals send --local --workspace "$W" --terminal "$R" --text="<error, fix the verdict file>" --wait --until settled --timeout 600`) and check again. Still invalid: this round is "changes requested" with the single finding `reviewer produced no valid verdict`.
 5. Close the reviewer: `superset terminals close --local --workspace "$W" --terminal "$R"`.
 6. Comment on the PR, from the repository: `gh pr comment "$PR" --body-file <file>` with:
 
@@ -60,7 +60,7 @@ EOF
 8. Not approved and `r < 3` and `$IMPL` is set: note `BEFORE=$(git -C "$WT" rev-parse HEAD)`, then send the findings to the implementer and wait for its turn:
 
    ```bash
-   superset terminals send --local --workspace "$W" --terminal "$IMPL" --text "$(cat "$FINDINGS_FILE")" \
+   superset terminals send --local --workspace "$W" --terminal "$IMPL" --text="$(cat "$FINDINGS_FILE")" \
      --wait --until settled --timeout 1200 --json
    ```
 

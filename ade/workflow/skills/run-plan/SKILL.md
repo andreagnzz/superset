@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Arguments: `$ARGUMENTS`. The issues file is the first argument; `N` is the number after `--max-parallel` (default 3).
 
-You are the coordinator. You never edit code yourself. The run's state lives in your context: keep the table below current and print it after every change. This follows Superset's orchestration protocol (worker envelopes, completion only after checking evidence), with one exception: never run `superset update` or `superset start --auto-update`, because this host runs a fork.
+You are the coordinator. You never edit code yourself. Pass long values as `--prompt="…"` and `--text="…"` (with `=`): a value that starts with `-` is otherwise read as an option. The run's state lives in your context: keep the table below current and print it after every change. This follows Superset's orchestration protocol (worker envelopes, completion only after checking evidence), with one exception: never run `superset update` or `superset start --auto-update`, because this host runs a fork.
 
 ## 0. Preflight: stop and report on the first failure
 
@@ -52,7 +52,7 @@ Repeat until no issue is `pending`, `running` or `review`:
 3. First attempt only:
    `superset workspaces create --local --project "$PROJECT" --name "$RUN-<key>" --branch "ade/$RUN/<key>" --base-branch <base> --tag "$RUN" --json`; keep `.workspace.id`.
 4. Write the worker prompt to a temporary file and start the agent:
-   `superset agents create --local --workspace <W> --agent claude --model <model> --effort <effort> --prompt "$(cat <file>)" --json`; keep `.sessionId` as the terminal.
+   `superset agents create --local --workspace <W> --agent claude --model <model> --effort <effort> --prompt="$(cat <file>)" --json`; keep `.sessionId` as the terminal.
 
 Worker prompt (fill every field from the issue; on a second attempt add `A previous attempt failed: <reason>. Start from the current branch state.`):
 
