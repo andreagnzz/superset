@@ -91,6 +91,7 @@ async function main(): Promise<void> {
 		db,
 		launchSandboxAgent,
 		resumeCrashedAgents,
+		startPlanRuns,
 		readLinkedPullRequests,
 		onPullRequestLinked,
 		terminalAgentStore,
@@ -158,6 +159,7 @@ async function main(): Promise<void> {
 
 		startTerminalReaper(db);
 		startVitalsLog();
+		startPlanRuns();
 		// A cloud workspace created with an agent starts it now: the pty daemon
 		// and event bus are up, and a person opening the workspace sees the
 		// agent's terminal the way they would on their own machine.

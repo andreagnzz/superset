@@ -1,7 +1,10 @@
+import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
+import { parseLaunchRules } from "@superset/shared/agent-launch-estimator";
+import { agentRunState } from "@superset/shared/agent-status";
 import {
 	SUPERSET_RELAYED_HEADER,
 	SUPERSET_USER_ID_HEADER,
@@ -39,6 +42,11 @@ import { registerBrowserCdpRoute } from "./runtime/browser-bridge/browser-cdp-ro
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitEnvResolver, createGitFactory } from "./runtime/git";
+import {
+	lastAssistantTurn,
+	PlanRunManager,
+	PlanRunStore,
+} from "./runtime/plan-runs";
 import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import {
@@ -55,8 +63,12 @@ import {
 	SqliteTerminalAgentBindingPersistence,
 	TerminalAgentStore,
 } from "./terminal-agents";
+import { terminalHarnessSession } from "./terminal-agents/harness-session-ref";
+import { readHarnessTranscriptOffLoop } from "./terminal-agents/harness-sessions/read-off-loop";
 import { matchesAgentBinding } from "./terminal-agents/matches-agent-binding";
+import { createCallerFactory } from "./trpc";
 import { appRouter } from "./trpc/router";
+import { runAgentInWorkspace } from "./trpc/router/agents";
 import { gitStatusStore } from "./trpc/router/git/utils/git-status-store";
 import { stopLocalMobileServer } from "./trpc/router/mobile";
 import {
@@ -68,6 +80,7 @@ import {
 	execGh as defaultExecGh,
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
+import { workspacesRouter } from "./trpc/router/workspaces";
 import type {
 	ApiClient,
 	BrowserBridgeConfig,
@@ -124,6 +137,8 @@ export interface CreateAppResult {
 	 */
 	launchSandboxAgent: () => Promise<void>;
 	resumeCrashedAgents: () => Promise<void>;
+	/** Starts the plan-run queue; call once the server is listening. */
+	startPlanRuns: () => void;
 	readLinkedPullRequests: () => Promise<
 		{ repository: string; number: number; linkedAt: number }[]
 	>;
@@ -315,10 +330,117 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	});
 	pageWatch.subscribeToTerminalEvents(eventBus);
 
+	// Plan runs launch through the same procedures a request would, as the host.
+	const planRunContext = () =>
+		({
+			git,
+			credentials: providers.credentials,
+			github,
+			execGh,
+			api,
+			db,
+			runtime,
+			eventBus,
+			terminalAgentStore,
+			organizationId: config.organizationId,
+			isAuthenticated: true,
+			browserBridge: config.browserBridge,
+			launchRoutingFile,
+		}) as HostServiceContext;
+	const planRuns = new PlanRunManager({
+		store: new PlanRunStore(join(dirname(config.dbPath), "plan-runs")),
+		launch: async ({
+			run,
+			issue,
+			branch,
+			baseBranch,
+			prompt,
+			model,
+			effort,
+		}) => {
+			const ctx = planRunContext();
+			let workspaceId = issue.workspaceId;
+			if (!workspaceId) {
+				const created = await createCallerFactory(workspacesRouter)(ctx).create(
+					{
+						projectId: run.projectId,
+						name: `${run.name}-${issue.key}`,
+						branch,
+						baseBranch,
+						skipBranchPrefix: true,
+						tags: [run.name],
+					},
+				);
+				workspaceId = created.workspace.id;
+			}
+			const agent = await runAgentInWorkspace(ctx, {
+				workspaceId,
+				agent: "claude",
+				prompt,
+				model,
+				effort,
+			});
+			return { workspaceId, terminalId: agent.sessionId };
+		},
+		agentState: async ({ terminalId, workspaceId }) => {
+			if (!terminalId || !workspaceId) return { state: "gone" };
+			const binding = terminalAgentStore.get(terminalId);
+			if (binding?.endedAt !== undefined) return { state: "gone" };
+			if (
+				!(await isAgentTerminalAlive({ terminalId, workspaceId, db, eventBus }))
+			) {
+				return { state: "gone" };
+			}
+			return binding
+				? {
+						state: agentRunState(binding.lastEventType),
+						lastEventAt: binding.lastEventAt,
+					}
+				: { state: "starting" };
+		},
+		readAnswer: async ({ terminalId }) => {
+			const bound = terminalId ? terminalHarnessSession(db, terminalId) : null;
+			if (!bound || bound.endedAt) return null;
+			const transcript = await readHarnessTranscriptOffLoop(bound.ref, 20_000);
+			return transcript ? lastAssistantTurn(transcript.text) : null;
+		},
+		nudge: async ({ terminalId, workspaceId }, text) => {
+			if (!terminalId || !workspaceId) return;
+			const result = await sendAgentMessage({
+				terminalId,
+				workspaceId,
+				text,
+				submit: true,
+				terminalAgentStore,
+				db,
+				eventBus,
+			});
+			if ("error" in result) {
+				console.warn(`[plan-runs] nudge failed: ${result.error}`);
+			}
+		},
+		routingRules: async () => {
+			try {
+				return parseLaunchRules(await readFile(launchRoutingFile, "utf8"));
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+				throw error;
+			}
+		},
+	});
+	let planRunTick: ReturnType<typeof setTimeout> | null = null;
+	terminalAgentStore.on("change", () => {
+		planRunTick ??= setTimeout(() => {
+			planRunTick = null;
+			void planRuns.tick();
+		}, 500);
+	});
+
 	const runtime = {
 		filesystem,
 		pullRequests: pullRequestRuntime,
 		pageWatch,
+		planRuns,
 		chat: () => chatV3.runtime(),
 		closeChats: (scopeId: string) => chatV3.closeScope(scopeId),
 	};
@@ -551,6 +673,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		} catch (err) {
 			console.warn("[host-service] pageWatch.stop failed:", err);
 		}
+		planRuns.stop();
+		if (planRunTick) clearTimeout(planRunTick);
 		try {
 			stopLocalMobileServer();
 		} catch (err) {
@@ -638,6 +762,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		launchSandboxAgent,
 		resumeCrashedAgents,
+		startPlanRuns: () => planRuns.startLoop(15_000),
 		readLinkedPullRequests: () => pullRequestRuntime.listLinkedPullRequests(),
 		onPullRequestLinked: (listener) =>
 			pullRequestRuntime.onPullRequestLinked(listener),
