@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { Sandbox } from "@vercel/sandbox";
 import { stub } from "../../../test/stub";
-import { findSandboxSession, listActiveWorkspaceSandboxes } from "./vercel";
+import {
+	findSandboxSession,
+	listActiveWorkspaceSandboxes,
+	SESSION_TIMEOUT_MS,
+	topUpRunningSession,
+} from "./vercel";
 
 type ListOptions = NonNullable<Parameters<typeof Sandbox.list>[0]>;
 
@@ -110,5 +115,46 @@ describe("listActiveWorkspaceSandboxes", () => {
 			sortOrder: "desc",
 		});
 		expect(listOptions).not.toHaveProperty("tags");
+	});
+});
+
+describe("topUpRunningSession", () => {
+	const session = (remainingMs: number, startedAt = NOW - HOUR) => {
+		const extended: number[] = [];
+		const sandbox = {
+			expiresAt: new Date(NOW + remainingMs) as Date | undefined,
+			currentSession: () => ({
+				startedAt: new Date(startedAt),
+				createdAt: new Date(startedAt),
+				extendTimeout: (ms: number) => {
+					extended.push(ms);
+					sandbox.expiresAt = new Date(
+						(sandbox.expiresAt?.getTime() ?? 0) + ms,
+					);
+					return Promise.resolve();
+				},
+			}),
+		};
+		return { sandbox, extended };
+	};
+
+	test("extends a session to a full timeout from now", async () => {
+		const { sandbox, extended } = session(SESSION_TIMEOUT_MS / 2);
+		const endsAt = await topUpRunningSession(sandbox, NOW);
+		expect(extended).toEqual([SESSION_TIMEOUT_MS / 2]);
+		expect(endsAt?.getTime()).toBe(NOW + SESSION_TIMEOUT_MS);
+	});
+
+	test("stops at the plan's 24h per-session cap", async () => {
+		const { sandbox, extended } = session(HOUR / 2, NOW - DAY + HOUR);
+		const endsAt = await topUpRunningSession(sandbox, NOW);
+		expect(extended).toEqual([HOUR / 2]);
+		expect(endsAt?.getTime()).toBe(NOW + HOUR);
+	});
+
+	test("skips a session that is already nearly full", async () => {
+		const { sandbox, extended } = session(SESSION_TIMEOUT_MS - 30_000);
+		await topUpRunningSession(sandbox, NOW);
+		expect(extended).toEqual([]);
 	});
 });
