@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	escalateSize,
 	estimateAgentLaunch,
 	parseLaunchRules,
 } from "./agent-launch-estimator";
@@ -17,6 +18,7 @@ const RULES = parseLaunchRules(
 			{ match: "migration|security", tier: "XL" },
 		],
 		fallbackTier: "M",
+		escalation: { afterFailures: 1, maxTier: "XL" },
 	}),
 );
 
@@ -69,4 +71,10 @@ describe("parseLaunchRules", () => {
 			),
 		).toThrow("rules[0].tier");
 	});
+});
+
+it("escalateSize goes one tier up per failed attempt, up to the cap", () => {
+	expect(escalateSize(RULES, "S", 1)).toBe("S");
+	expect(escalateSize(RULES, "S", 2)).toBe("M");
+	expect(escalateSize(RULES, "M", 9)).toBe("XL");
 });
