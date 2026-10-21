@@ -8,6 +8,7 @@ import type { PageWatchManager } from "./page-watch/index.ts";
 import type { ApiAuthProvider } from "./providers/auth/types";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider, GitFactory } from "./runtime/git";
+import type { PlanRunManager } from "./runtime/plan-runs";
 import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import type { TerminalAgentStore } from "./terminal-agents";
 import type { ExecGh } from "./trpc/router/workspace-creation/utils/exec-gh";
@@ -18,6 +19,7 @@ export interface HostServiceRuntime {
 	filesystem: WorkspaceFilesystemManager;
 	pullRequests: PullRequestRuntimeManager;
 	pageWatch: PageWatchManager;
+	planRuns: PlanRunManager;
 	chat?: () => ChatRuntime;
 	closeChats?: (scopeId: string) => Promise<void>;
 }

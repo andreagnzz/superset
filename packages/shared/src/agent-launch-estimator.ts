@@ -13,6 +13,8 @@ export type LaunchRules = {
 	roles: Record<string, Choice>;
 	rules: { match: RegExp; tier: string }[];
 	fallbackTier: string | null;
+	/** One tier up every `afterFailures` failed attempts, never above `maxTier`. */
+	escalation: { afterFailures: number; maxTier: string } | null;
 };
 
 export type LaunchEstimate = Choice & { reason: string };
@@ -66,7 +68,45 @@ export function parseLaunchRules(text: string): LaunchRules {
 	if (fallbackTier !== null && !own(tiers, fallbackTier)) {
 		throw new Error(`fallbackTier ${fallbackTier} is not a tier`);
 	}
-	return { tiers, roles, rules, fallbackTier };
+	const escalation = isRecord(raw.escalation) ? raw.escalation : null;
+	const maxTier = escalation?.maxTier;
+	if (escalation && (typeof maxTier !== "string" || !own(tiers, maxTier))) {
+		throw new Error("escalation.maxTier must name a tier");
+	}
+	const afterFailures = escalation?.afterFailures;
+	return {
+		tiers,
+		roles,
+		rules,
+		fallbackTier,
+		escalation:
+			typeof maxTier === "string"
+				? {
+						afterFailures:
+							typeof afterFailures === "number" && afterFailures > 0
+								? afterFailures
+								: 1,
+						maxTier,
+					}
+				: null,
+	};
+}
+
+/**
+ * The tier for the `attempt`-th try (1-based) of work sized `size`, in the
+ * order the tiers are listed; without `escalation`, always `size`.
+ */
+export function escalateSize(
+	rules: LaunchRules,
+	size: string,
+	attempt: number,
+): string {
+	const order = Object.keys(rules.tiers);
+	const start = order.indexOf(size);
+	if (start === -1 || !rules.escalation) return size;
+	const cap = order.indexOf(rules.escalation.maxTier);
+	const steps = Math.floor((attempt - 1) / rules.escalation.afterFailures);
+	return order[Math.min(start + steps, cap)] ?? size;
 }
 
 /** Null for presets other than Claude, whose model aliases the rules use. */
