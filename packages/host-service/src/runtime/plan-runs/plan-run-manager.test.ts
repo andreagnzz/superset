@@ -73,6 +73,7 @@ function setup(
 	const prStates = new Map<number, "open" | "merged" | "closed">();
 	const restacks: { key: string; onto?: string; upstream: string }[] = [];
 	const retargets: { key: string; base?: string }[] = [];
+	const prStateReads: string[] = [];
 	let restackResult:
 		| { ok: true; base: string; baseSha: string }
 		| { ok: false; reason: string; detail: string } = {
@@ -127,8 +128,10 @@ function setup(
 			restacks.push({ key: i.key, onto, upstream });
 			return restackResult;
 		},
-		pullRequestState: async (_run, i) =>
-			prStates.get(i.prNumber ?? 0) ?? "open",
+		pullRequestState: async (_run, i) => {
+			prStateReads.push(i.key);
+			return prStates.get(i.prNumber ?? 0) ?? "open";
+		},
 		retarget: async (_run, i, base) => {
 			retargets.push({ key: i.key, base });
 		},
@@ -174,6 +177,7 @@ function setup(
 	return {
 		baseHeads,
 		prStates,
+		prStateReads,
 		restacks,
 		retargets,
 		finish,
@@ -441,6 +445,11 @@ describe("PlanRunManager", () => {
 			expect(h.comments.at(-1)).toBe(
 				"B: ADE stack: #1 was merged; retargeted onto main and rebased.",
 			);
+			// A merged pull request is final: only B is still read.
+			h.prStateReads.length = 0;
+			h.advance(61_000);
+			await h.manager.tick();
+			expect(h.prStateReads).toEqual(["B"]);
 		});
 
 		it("leaves an issue alone after its rebase failed", async () => {

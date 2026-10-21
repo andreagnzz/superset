@@ -493,6 +493,7 @@ export class PlanRunManager {
 		);
 		for (const issue of ordered) {
 			if (!issue.prNumber || issue.stackError) continue;
+			if (issue.prState === "merged" || issue.prState === "closed") continue;
 			try {
 				issue.prState = await this.deps.pullRequestState(run, issue);
 				await this.restackIssue(run, issue);
