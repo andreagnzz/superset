@@ -1,5 +1,10 @@
+import { existsSync, readFileSync } from "node:fs";
 import { isBuiltinAgentId } from "@superset/shared/agent-catalog";
 import { FORK_SESSION_ID_TOKEN } from "@superset/shared/agent-definition";
+import {
+	estimateAgentLaunch,
+	parseLaunchRules,
+} from "@superset/shared/agent-launch-estimator";
 import {
 	buildAgentEffortArgs,
 	buildAgentModeArgs,
@@ -388,25 +393,55 @@ export function validateAgentLaunchOptions(
  * wait-for-setup gate, which chains this command behind the setup commands in
  * the setup terminal. Throws NOT_FOUND for unknown agents or attachments.
  */
+/**
+ * A fresh launch that names neither model nor effort takes both from the
+ * host's routing.json, when it exists. A resume or fork keeps its session's.
+ */
+function withRoutedModel(
+	input: AgentRunInput,
+	presetId: string,
+	routingFile: string | undefined,
+): AgentRunInput {
+	if (!routingFile || !existsSync(routingFile)) return input;
+	if (input.model || input.effort) return input;
+	if (input.resumeSessionId || input.forkSessionId) return input;
+	let estimate: ReturnType<typeof estimateAgentLaunch>;
+	try {
+		const rules = parseLaunchRules(readFileSync(routingFile, "utf-8"));
+		estimate = estimateAgentLaunch({ presetId, prompt: input.prompt }, rules);
+	} catch (error) {
+		// A broken rules file must not stop launches; it only turns routing off.
+		console.warn(`[routing] ignored ${routingFile}:`, error);
+		return input;
+	}
+	if (!estimate) return input;
+	console.log(
+		`[routing] model=${estimate.model} effort=${estimate.effort} reason=${estimate.reason}`,
+	);
+	return { ...input, model: estimate.model, effort: estimate.effort };
+}
+
 export function buildTerminalAgentLaunch(
 	db: HostDb,
-	input: AgentRunInput,
+	rawInput: AgentRunInput,
+	{ routingFile }: { routingFile?: string } = {},
 ): { fullCommand: string; label: string } {
 	seedDefaultsIfEmpty(db);
-	const config = resolveHostAgentConfig(db, input.agent);
+	const config = resolveHostAgentConfig(db, rawInput.agent);
 	if (!config) {
 		// Worded for end users (automation run errors show this verbatim), but
 		// keep "No host agent config matching" — the desktop matches on it to
 		// attach re-select guidance.
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: `No host agent config matching '${input.agent}' — the agent may have been removed or this host's agents were reset. Re-select an agent (or use a preset id like "claude").`,
+			message: `No host agent config matching '${rawInput.agent}' — the agent may have been removed or this host's agents were reset. Re-select an agent (or use a preset id like "claude").`,
 		});
 	}
 	const launchPresetId = resolveAgentLaunchPresetId(
 		config.presetId,
 		config.command,
 	);
+	const input = withRoutedModel(rawInput, launchPresetId, routingFile);
 	validateAgentModelSelection(launchPresetId, config.label, input.model);
 	validateAgentEffortSelection(
 		launchPresetId,
@@ -497,10 +532,15 @@ export function bindResumedSession(
 }
 
 async function runTerminalAgent(
-	ctx: Pick<HostServiceContext, "db" | "eventBus" | "terminalAgentStore">,
+	ctx: Pick<
+		HostServiceContext,
+		"db" | "eventBus" | "terminalAgentStore" | "launchRoutingFile"
+	>,
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
-	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input);
+	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input, {
+		routingFile: ctx.launchRoutingFile,
+	});
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({

@@ -48,6 +48,8 @@ export interface HostServiceContext {
 	apiAuth?: ApiAuthProvider;
 	/** True only for a request that did not come through the relay. */
 	isLocalCaller?: boolean;
+	/** routing.json next to host.db: when present, picks model and effort for launches that name neither. */
+	launchRoutingFile?: string;
 }
 
 export interface BrowserBridgeConfig {

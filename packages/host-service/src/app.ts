@@ -1,3 +1,4 @@
+import { dirname, join } from "node:path";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
@@ -138,6 +139,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.api ??
 		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
+	const launchRoutingFile = join(dirname(config.dbPath), "routing.json");
 	// A sandbox is provisioned for exactly one workspace, and the env says
 	// which. Seeding it here rather than from the API keeps the schema in one
 	// place and leaves provisioning with nothing to orchestrate.
@@ -526,6 +528,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					browserBridge: config.browserBridge,
 					apiAuth: providers.auth,
 					isLocalCaller: c.req.header(SUPERSET_RELAYED_HEADER) === undefined,
+					launchRoutingFile,
 				} as Record<string, unknown>;
 			},
 		}),

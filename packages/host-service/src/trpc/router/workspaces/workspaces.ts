@@ -1318,15 +1318,19 @@ export const workspacesRouter = router({
 				soleLaunch.surface !== "chat"
 			) {
 				try {
-					chainAgent = buildTerminalAgentLaunch(ctx.db, {
-						workspaceId: workspaceRow.id,
-						agent: soleLaunch.agent,
-						prompt: soleLaunch.prompt,
-						attachmentIds: soleLaunch.attachmentIds,
-						model: soleLaunch.model,
-						effort: soleLaunch.effort,
-						mode: soleLaunch.mode,
-					});
+					chainAgent = buildTerminalAgentLaunch(
+						ctx.db,
+						{
+							workspaceId: workspaceRow.id,
+							agent: soleLaunch.agent,
+							prompt: soleLaunch.prompt,
+							attachmentIds: soleLaunch.attachmentIds,
+							model: soleLaunch.model,
+							effort: soleLaunch.effort,
+							mode: soleLaunch.mode,
+						},
+						{ routingFile: ctx.launchRoutingFile },
+					);
 				} catch (err) {
 					console.warn(
 						"[workspaces.create] wait-for-setup chain unavailable, dispatching agent in parallel:",
