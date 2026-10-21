@@ -95,10 +95,13 @@ export function registerHistoryNavigation(
 
 	return {
 		recallOlder: () =>
-			editor.update(() => {
-				if (!$isRangeSelection($getSelection())) $getRoot().selectStart();
-				navigate("older", null);
-			}),
+			editor.update(
+				() => {
+					if (!$isRangeSelection($getSelection())) $getRoot().selectStart();
+					navigate("older", null);
+				},
+				{ discrete: true },
+			),
 		reset: () => {
 			index = null;
 			recalled = "";
