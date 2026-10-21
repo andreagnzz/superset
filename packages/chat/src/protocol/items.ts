@@ -124,7 +124,7 @@ export type ToolKind = z.infer<typeof toolKindSchema>;
 export const userMessageSchema = z.looseObject({
 	...itemBaseFields,
 	kind: z.literal("user_message"),
-	from: z.literal("parent").optional(),
+	from: z.literal("parent").optional().catch(undefined),
 	clientId: z.string().min(1).optional(),
 	queued: z.boolean().optional(),
 	discarded: z.boolean().optional(),
@@ -184,7 +184,7 @@ export const toolCallSchema = z.looseObject({
 	rawInput: z.unknown().optional(),
 	rawOutput: z.unknown().optional(),
 	subagent: z.boolean().optional(),
-	subagentStatus: subagentStatusSchema.optional(),
+	subagentStatus: subagentStatusSchema.optional().catch(undefined),
 	canSteer: z.boolean().optional(),
 	canStop: z.boolean().optional(),
 	canBackground: z.boolean().optional(),

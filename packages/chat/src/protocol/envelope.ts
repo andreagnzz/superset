@@ -54,7 +54,7 @@ export const backgroundTaskSchema = z.looseObject({
 	canStop: z.boolean(),
 	canSteer: z.boolean().optional(),
 	canBackground: z.boolean().optional(),
-	subagentStatus: subagentStatusSchema.optional(),
+	subagentStatus: subagentStatusSchema.optional().catch(undefined),
 	startedAtMs: z.number(),
 });
 export type BackgroundTask = z.infer<typeof backgroundTaskSchema>;
