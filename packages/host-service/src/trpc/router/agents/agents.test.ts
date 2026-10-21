@@ -1,6 +1,12 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -556,6 +562,51 @@ describe("buildTerminalAgentLaunch", () => {
 				effort: "low",
 			}),
 		).not.toThrow();
+	});
+});
+
+describe("buildTerminalAgentLaunch routing", () => {
+	const dir = mkdtempSync(join(tmpdir(), "routing-"));
+	const routingFile = join(dir, "routing.json");
+	writeFileSync(
+		routingFile,
+		JSON.stringify({
+			tiers: {
+				S: { model: "haiku", effort: "low" },
+				M: { model: "sonnet", effort: "high" },
+			},
+			rules: [{ match: "typo", tier: "S" }],
+			fallbackTier: "M",
+		}),
+	);
+	const launch = (
+		input: Partial<Parameters<typeof buildTerminalAgentLaunch>[1]>,
+	) =>
+		buildTerminalAgentLaunch(
+			createTestDb(),
+			{
+				workspaceId: "11111111-1111-1111-1111-111111111111",
+				agent: "claude",
+				prompt: "fix typo in README",
+				...input,
+			},
+			{ routingFile },
+		).fullCommand;
+
+	it("routes a fresh launch that names no model by its prompt", () => {
+		expect(launch({})).toContain("'--model' 'haiku' '--effort' 'low'");
+	});
+
+	it("keeps an explicit model", () => {
+		const command = launch({ model: "opus" });
+		expect(command).toContain("'opus'");
+		expect(command).not.toContain("'haiku'");
+	});
+
+	it("leaves a resume alone", () => {
+		expect(launch({ prompt: "", resumeSessionId: "s-1" })).not.toContain(
+			"--model",
+		);
 	});
 });
 
