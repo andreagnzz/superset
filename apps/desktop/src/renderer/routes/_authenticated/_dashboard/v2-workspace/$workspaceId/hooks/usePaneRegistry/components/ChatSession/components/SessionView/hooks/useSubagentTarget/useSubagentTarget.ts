@@ -160,16 +160,23 @@ export function useSubagentTarget({
 	);
 
 	const queued = useMemo(() => {
-		const claimed = new Set<string>();
+		const unclaimed = new Map<string, string>();
 		return steers.filter((entry) => {
 			const echo = steerEchoes(items, entry.subagentId).find(
 				(candidate) =>
-					!claimed.has(candidate.id) &&
 					!entry.seen.has(candidate.id) &&
-					userMessageText(candidate).includes(entry.text),
+					(unclaimed.get(candidate.id) ?? userMessageText(candidate)).includes(
+						entry.text,
+					),
 			);
 			if (echo) {
-				claimed.add(echo.id);
+				unclaimed.set(
+					echo.id,
+					(unclaimed.get(echo.id) ?? userMessageText(echo)).replace(
+						entry.text,
+						"",
+					),
+				);
 				return false;
 			}
 			const subagent = subagentItem(items, entry.subagentId);

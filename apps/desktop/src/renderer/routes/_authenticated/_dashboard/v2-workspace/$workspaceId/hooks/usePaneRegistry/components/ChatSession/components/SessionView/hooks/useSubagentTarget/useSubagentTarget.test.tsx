@@ -232,6 +232,44 @@ test("a message shows as queued until the subagent's echo of it arrives", async 
 	expect(hook.result.current.queued).toEqual([]);
 });
 
+test("one echo that carries two queued messages clears both", async () => {
+	const steerSubagent = mock(
+		async (_taskId: string, _content: UserContent[]) =>
+			"steered" as SteerSubagentResult,
+	);
+	const first: UserContent[] = [{ type: "text", text: "check the tests" }];
+	const second: UserContent[] = [{ type: "text", text: "and the docs" }];
+	const hook = renderHook(
+		({ items }: { items: SessionSnapshot["items"] }) =>
+			useSubagentTarget({
+				client: { steerSubagent },
+				draftKey: "chat-v3-draft:t1",
+				focusedId: explore.id,
+				items,
+				onSend: () => {},
+				onStop: () => {},
+				onUnsent: () => {},
+			}),
+		{ initialProps: { items: withItems(explore) } },
+	);
+	await act(async () => {
+		await hook.result.current.onSend(first, { steer: false });
+		await hook.result.current.onSend(second, { steer: false });
+	});
+	expect(hook.result.current.queued).toHaveLength(2);
+
+	hook.rerender({
+		items: withItems(explore, {
+			id: "sub:c1:user_message:u1",
+			kind: "user_message",
+			parentItemId: "subagent:c1",
+			content: [{ type: "text", text: "check the tests\n\nand the docs" }],
+			startedAtMs: 3,
+		}),
+	});
+	expect(hook.result.current.queued).toEqual([]);
+});
+
 test("a message the subagent did not take leaves the queue", async () => {
 	const steerSubagent = mock(
 		async (_taskId: string, _content: UserContent[]) => {
