@@ -29,14 +29,24 @@ None.
 - [x] (2026-10-21 20:10Z) Milestone 1: `ade/workflow/scripts/ade.ts` (check, ready, tier, role, verdict, active); `bun test ade/workflow` 8 pass; strict typecheck clean.
 - [x] (2026-10-21 20:20Z) Milestone 2: the three skills, `claude plugin validate` passes, deployed to `~/.local/share/ade/workflow`, `CLAUDE_CODE_PLUGIN_DIRS` lists both plugins.
 - [x] (2026-10-21 20:05Z) Milestone 3: `/ade:plan` run headless on the toy repo wrote `plans/20261021-2203-string-helpers.{md,issues.json}`; `check` prints `OK 4 issues`.
-- [ ] Milestone 4: Phase 1 acceptance run (4 issues, 2 stacked, `--max-parallel 2`).
-- [ ] Milestone 5: roadmap updated, plan moved to `plans/done/`, PR merged.
+- [x] (2026-10-21 20:16Z) Milestone 4: Phase 1 acceptance run passed (4 issues, 2 stacked, `--max-parallel 2`; first attempt stopped at preflight on a wrong JSON field, fixed and re-run).
+- [x] (2026-10-21 20:30Z) Review loop checked on a PR with a planted bug (changes requested, fixed, approved at round 2).
+- [x] (2026-10-21 20:35Z) Milestone 5: roadmap updated, plan moved to `plans/done/`, PR merged.
 
 
 ## Surprises & Discoveries
 
 - Observation: a stacked issue has exactly one parent (`stackOn`), and nothing is merged into the default branch during a run, so an issue that needs the code of two issues forces the planner to chain them. Asked for a helper built on two others, `/ade:plan` chained all four issues (A ← B ← C ← D) and explained why; such a plan runs with no parallelism. A later milestone (roadmap M3/M4) could start a child from a merge of several parent branches.
   Evidence: `plans/20261021-2203-string-helpers.md` and `.issues.json` in `andreagnzz/ade-sandbox` (`OK 4 issues, order: A, B, C, D`).
+
+- Observation: `superset projects list --json` names the main checkout `path`, while `superset projects create --json` returns it as `repoPath`; the first acceptance attempt stopped at preflight because the skill read `repoPath`. The preflight stopped as designed instead of guessing.
+  Evidence: `PROJECT=` empty in the first coordinator run; `projects list` output `{ "name", "repo", "path", "id" }`.
+
+- Observation: the coordinator filled the reviewer prompt's `<PR>` placeholder with a `sed` that dropped the number from the first sentence (the `gh` commands kept it, so the reviews were still right). The skill now builds the prompt with a heredoc and `$PR`, so nothing is filled by hand.
+  Evidence: the coordinator's own note at the end of the run.
+
+- Observation: `superset terminals send --text "- [blocker] …"` fails with "Option --text requires a value": the CLI reads a value that starts with `-` as an option. `--text="…"` works. The skills now pass every long value with `=`.
+  Evidence: both forms run against a live terminal on 2026-10-21; the review run hit the first and recovered with the second.
 
 - Observation: the planner answers in the owner's language (French), from the user-level `CLAUDE.md`; the files it writes follow the repository (English).
   Evidence: the `/ade:plan` reply of 2026-10-21 22:03.
@@ -75,7 +85,9 @@ None.
 
 ## Outcomes & Retrospective
 
-To be written at the end.
+Phase 1 is done. On the VPS, `/ade:plan`, `/ade:run-plan` and `/ade:review-pr` plan a feature into checked issues, run them in parallel Superset workspaces with a hard cap on working agents, stack branches and PR bases, and loop fresh reviewers until approval or three rounds. The roadmap's Phase 1 acceptance passed on `andreagnzz/ade-sandbox`, and the review loop was checked on a planted bug.
+
+Limits, as the roadmap expected: the run's state lives in the coordinator's context (Phase 2 M2/M3 moves it into the host); after a merge, stacked PRs must be retargeted by hand (M4); an issue can stack on one parent only, which makes the planner chain issues that need two parents' code. Three bugs were caught by running the real thing, not by reading: a JSON field name, a templated prompt, and the CLI's option parsing of values starting with `-`.
 
 
 ## Context and Orientation
@@ -132,7 +144,28 @@ The script and skills only read files except the coordinator's workspace/PR crea
 
 ## Artifacts and Notes
 
-To be filled.
+Phase 1 acceptance, 2026-10-21 22:06–22:16 local, toy repository `andreagnzz/ade-sandbox`, plan `plans/20261021-2210-acceptance.issues.json` (A and B from `main`; C stacked on A; D stacked on B), coordinator `claude -p "/ade:run-plan … --max-parallel 2" --model sonnet`:
+
+    sampler (superset snapshot | ade.ts active "acceptance-", every ~6 s): 90 samples, max 2
+        59 × 0, 9 × 1, 22 × 2
+    gh pr list:
+        #1 ade/acceptance/A -> main
+        #2 ade/acceptance/B -> main
+        #3 ade/acceptance/C -> ade/acceptance/A
+        #4 ade/acceptance/D -> ade/acceptance/B
+    PR comments: "ADE review, round 1: approved" on #1, #2, #3, #4
+    coordinator: 4/4 done, 0 blocked, 0 failed; it re-ran `npm test` in every worktree itself.
+
+Workers ran on `claude-haiku-5-5` at `low` (tier S), reviewers on Opus at `high` (role `review`). The coordinator started both reviewers of A and B at once when both implementers were idle (two free slots), and C and D together after A and B were approved.
+
+The acceptance PRs were all approved at round 1, so the "changes requested" path was checked separately: PR #5 of the toy repository adds `sum(numbers)` with a planted off-by-one (`for (let i = 1; …)`) and a test that only covers `[]`, so `npm test` passes. An implementer agent (Haiku, low) sat idle in the workspace, and `claude -p "/ade:review-pr <W> 5 <T>"` ran:
+
+    round 1: changes requested
+      - [blocker] src/sum.js:3 Loop starts at i = 1, so the first element is always skipped …
+      - [major] test/sum.test.js:5 Only the empty-list case is tested …
+    implementer commit: "fix(sum): include the first element in the total", pushed by the skill
+    round 2: approved (one minor: add negative and fractional cases)
+    REVIEW_RESULT pr=5 approved=true rounds=2
 
 
 ## Interfaces and Dependencies
@@ -154,3 +187,8 @@ No new dependency; Bun 1.4.3 runs the script (`bun` is on PATH on the VPS). Issu
 Verdict shape:
 
     { "approve": false, "findings": [{ "file": "src/x.js", "line": 12, "severity": "blocker|major|minor", "fix": "…" }] }
+
+
+## Revision notes
+
+2026-10-21: recorded the acceptance and the review-loop check, three fixes found by running (`path` field, heredoc prompt, `--opt=value`), and moved the plan to `plans/done/`.
