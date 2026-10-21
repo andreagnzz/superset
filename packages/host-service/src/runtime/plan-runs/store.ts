@@ -6,6 +6,7 @@ import type { PlanIssueSpec } from "@superset/shared/plan-issues";
 export type PlanIssueStatus =
 	| "queued"
 	| "running"
+	| "review"
 	| "done"
 	| "failed"
 	| "blocked";
@@ -17,9 +18,23 @@ export type PlanRunIssue = PlanIssueSpec & {
 	terminalId?: string;
 	branch?: string;
 	launchedAt?: number;
-	/** When the agent was asked for its missing envelope. */
-	nudgedAt?: number;
+	/** When the implementer was last sent a message; its earlier answers do not count. */
+	askedAt?: number;
+	/** The implementer was already asked for a missing envelope. */
+	nudged?: boolean;
 	summary?: string;
+	prNumber?: number;
+	prUrl?: string;
+	/** Review rounds started so far (fresh reviewer each round). */
+	reviewRound?: number;
+	reviewerTerminalId?: string;
+	reviewerNudged?: boolean;
+	/** The branch's git base; unset means the repository's default branch. */
+	baseBranch?: string;
+	/** The base commit the branch's own commits sit on, for a restack. */
+	baseSha?: string;
+	prState?: "open" | "merged" | "closed";
+	stackError?: string;
 	error?: string;
 };
 
@@ -33,6 +48,7 @@ export type PlanRun = {
 	status: PlanRunStatus;
 	createdAt: number;
 	updatedAt: number;
+	lastStackCheckAt?: number;
 	issues: PlanRunIssue[];
 };
 

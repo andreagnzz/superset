@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
@@ -10,6 +10,7 @@ import {
 	SUPERSET_USER_ID_HEADER,
 } from "@superset/shared/host-routing";
 import { SANDBOX_PORTS } from "@superset/shared/sandbox-contract";
+import { eq } from "drizzle-orm";
 
 /** One frame of a 1920x1200 display is ~9 MB; this is a stalled reader, not a burst. */
 const MAX_DISPLAY_BUFFER_BYTES = 32 * 1024 * 1024;
@@ -27,6 +28,7 @@ import {
 	registerChatV3Routes,
 } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
+import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import { agentIsBusy, PageWatchManager } from "./page-watch/index.ts";
 import { registerForwardMuxRoute } from "./ports/forward-mux-route";
@@ -69,13 +71,17 @@ import { matchesAgentBinding } from "./terminal-agents/matches-agent-binding";
 import { createCallerFactory } from "./trpc";
 import { appRouter } from "./trpc/router";
 import { runAgentInWorkspace } from "./trpc/router/agents";
+import { gitRouter } from "./trpc/router/git";
 import { gitStatusStore } from "./trpc/router/git/utils/git-status-store";
 import { stopLocalMobileServer } from "./trpc/router/mobile";
+import { pullRequestsRouter } from "./trpc/router/pull-requests";
+import { terminalRouter } from "./trpc/router/terminal";
 import {
 	resumeCrashedAgentSessions,
 	resumeSessionDepsFor,
 } from "./trpc/router/terminal-agents/terminal-agents";
 import { provisionSelectedAccounts } from "./trpc/router/usage/account-provisioning";
+import { resolveGithubRepo } from "./trpc/router/workspace-creation/shared/project-helpers";
 import {
 	execGh as defaultExecGh,
 	type ExecGh,
@@ -88,6 +94,7 @@ import type {
 } from "./types";
 import { getHostWorkerPool } from "./workers/host-worker-pool";
 import { gitWorkspaceRefsTask } from "./workers/tasks/git";
+import { gitRestackTask, gitStackStateTask } from "./workers/tasks/plan-stack";
 import { disposeWorkspaceTitleJobs } from "./workspaces/workspace-title-jobs";
 
 export interface CreateAppOptions {
@@ -347,8 +354,25 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			browserBridge: config.browserBridge,
 			launchRoutingFile,
 		}) as HostServiceContext;
+	const planRunsDir = join(dirname(config.dbPath), "plan-runs");
+	const planGitTarget = async (workspaceId: string | undefined) => {
+		const worktreePath = db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, workspaceId ?? "") })
+			.sync()?.worktreePath;
+		if (!worktreePath)
+			throw new Error(`workspace ${workspaceId} has no worktree`);
+		const gitEnv = await createGitEnvResolver(providers.credentials)(
+			worktreePath,
+		);
+		return { worktreePath, gitEnv };
+	};
+	const planGithub = async (projectId: string) => {
+		const ctx = planRunContext();
+		const repo = await resolveGithubRepo(ctx, projectId);
+		return { octokit: await ctx.github(), owner: repo.owner, repo: repo.name };
+	};
 	const planRuns = new PlanRunManager({
-		store: new PlanRunStore(join(dirname(config.dbPath), "plan-runs")),
+		store: new PlanRunStore(planRunsDir),
 		launch: async ({
 			run,
 			issue,
@@ -395,6 +419,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				? {
 						state: agentRunState(binding.lastEventType),
 						lastEventAt: binding.lastEventAt,
+						turnEnded: binding.lastEventType === "Stop",
 					}
 				: { state: "starting" };
 		},
@@ -404,7 +429,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			const transcript = await readHarnessTranscriptOffLoop(bound.ref, 20_000);
 			return transcript ? lastAssistantTurn(transcript.text) : null;
 		},
-		nudge: async ({ terminalId, workspaceId }, text) => {
+		send: async ({ terminalId, workspaceId }, text) => {
 			if (!terminalId || !workspaceId) return;
 			const result = await sendAgentMessage({
 				terminalId,
@@ -416,8 +441,98 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				eventBus,
 			});
 			if ("error" in result) {
-				console.warn(`[plan-runs] nudge failed: ${result.error}`);
+				console.warn(`[plan-runs] message not delivered: ${result.error}`);
 			}
+		},
+		launchReviewer: async ({ issue, prompt, verdictFile, model, effort }) => {
+			await mkdir(dirname(verdictFile), { recursive: true });
+			const agent = await runAgentInWorkspace(planRunContext(), {
+				workspaceId: issue.workspaceId ?? "",
+				agent: "claude",
+				prompt,
+				model,
+				effort,
+			});
+			return { terminalId: agent.sessionId };
+		},
+		closeTerminal: async ({ terminalId, workspaceId }) => {
+			if (!terminalId || !workspaceId) return;
+			await createCallerFactory(terminalRouter)(planRunContext()).killSession({
+				terminalId,
+				workspaceId,
+			});
+		},
+		publish: async ({ issue, title, body }) => {
+			const ctx = planRunContext();
+			const workspaceId = issue.workspaceId ?? "";
+			await createCallerFactory(gitRouter)(ctx).push({ workspaceId });
+			if (issue.prNumber && issue.prUrl) {
+				return { prNumber: issue.prNumber, prUrl: issue.prUrl };
+			}
+			const pr = await createCallerFactory(pullRequestsRouter)(
+				ctx,
+			).createForWorkspace({ workspaceId, title, body });
+			return { prNumber: pr.number, prUrl: pr.url };
+		},
+		comment: async (run, issue, body) => {
+			if (!issue.prNumber) return;
+			await createCallerFactory(pullRequestsRouter)(
+				planRunContext(),
+			).addComment({
+				projectId: run.projectId,
+				prNumber: issue.prNumber,
+				body,
+			});
+		},
+		verdictPath: (run, issue, round) =>
+			join(planRunsDir, run.id, `${issue.key}-round${round}.json`),
+		readVerdict: async (path) => {
+			let text: string;
+			try {
+				text = await readFile(path, "utf8");
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+				throw error;
+			}
+			try {
+				return JSON.parse(text);
+			} catch {
+				// Not JSON: the raw text fails the verdict check with a clear error.
+				return text;
+			}
+		},
+		stackState: async (issue) =>
+			getHostWorkerPool().run(
+				gitStackStateTask,
+				{ ...(await planGitTarget(issue.workspaceId)), base: issue.baseBranch },
+				{ timeoutMs: 60_000 },
+			),
+		restack: async (issue, onto, upstream) =>
+			getHostWorkerPool().run(
+				gitRestackTask,
+				{ ...(await planGitTarget(issue.workspaceId)), onto, upstream },
+				{ timeoutMs: 120_000 },
+			),
+		pullRequestState: async (run, issue) => {
+			const { octokit, owner, repo } = await planGithub(run.projectId);
+			const { data } = await octokit.pulls.get({
+				owner,
+				repo,
+				pull_number: issue.prNumber ?? 0,
+			});
+			if (data.merged) return "merged";
+			return data.state === "closed" ? "closed" : "open";
+		},
+		retarget: async (run, issue, base) => {
+			const { octokit, owner, repo } = await planGithub(run.projectId);
+			const target =
+				base ?? (await octokit.repos.get({ owner, repo })).data.default_branch;
+			await octokit.pulls.update({
+				owner,
+				repo,
+				pull_number: issue.prNumber ?? 0,
+				base: target,
+			});
 		},
 		routingRules: async () => {
 			try {
