@@ -10,6 +10,7 @@ import {
 	SUPERSET_USER_ID_HEADER,
 } from "@superset/shared/host-routing";
 import { SANDBOX_PORTS } from "@superset/shared/sandbox-contract";
+import { eq } from "drizzle-orm";
 
 /** One frame of a 1920x1200 display is ~9 MB; this is a stalled reader, not a burst. */
 const MAX_DISPLAY_BUFFER_BYTES = 32 * 1024 * 1024;
@@ -27,6 +28,7 @@ import {
 	registerChatV3Routes,
 } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
+import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import { agentIsBusy, PageWatchManager } from "./page-watch/index.ts";
 import { registerForwardMuxRoute } from "./ports/forward-mux-route";
@@ -79,6 +81,7 @@ import {
 	resumeSessionDepsFor,
 } from "./trpc/router/terminal-agents/terminal-agents";
 import { provisionSelectedAccounts } from "./trpc/router/usage/account-provisioning";
+import { resolveGithubRepo } from "./trpc/router/workspace-creation/shared/project-helpers";
 import {
 	execGh as defaultExecGh,
 	type ExecGh,
@@ -91,6 +94,7 @@ import type {
 } from "./types";
 import { getHostWorkerPool } from "./workers/host-worker-pool";
 import { gitWorkspaceRefsTask } from "./workers/tasks/git";
+import { gitRestackTask, gitStackStateTask } from "./workers/tasks/plan-stack";
 import { disposeWorkspaceTitleJobs } from "./workspaces/workspace-title-jobs";
 
 export interface CreateAppOptions {
@@ -351,6 +355,22 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			launchRoutingFile,
 		}) as HostServiceContext;
 	const planRunsDir = join(dirname(config.dbPath), "plan-runs");
+	const planGitTarget = async (workspaceId: string | undefined) => {
+		const worktreePath = db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, workspaceId ?? "") })
+			.sync()?.worktreePath;
+		if (!worktreePath)
+			throw new Error(`workspace ${workspaceId} has no worktree`);
+		const gitEnv = await createGitEnvResolver(providers.credentials)(
+			worktreePath,
+		);
+		return { worktreePath, gitEnv };
+	};
+	const planGithub = async (projectId: string) => {
+		const ctx = planRunContext();
+		const repo = await resolveGithubRepo(ctx, projectId);
+		return { octokit: await ctx.github(), owner: repo.owner, repo: repo.name };
+	};
 	const planRuns = new PlanRunManager({
 		store: new PlanRunStore(planRunsDir),
 		launch: async ({
@@ -479,6 +499,39 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				// Not JSON: the raw text fails the verdict check with a clear error.
 				return text;
 			}
+		},
+		stackState: async (issue) =>
+			getHostWorkerPool().run(
+				gitStackStateTask,
+				{ ...(await planGitTarget(issue.workspaceId)), base: issue.baseBranch },
+				{ timeoutMs: 60_000 },
+			),
+		restack: async (issue, onto, upstream) =>
+			getHostWorkerPool().run(
+				gitRestackTask,
+				{ ...(await planGitTarget(issue.workspaceId)), onto, upstream },
+				{ timeoutMs: 120_000 },
+			),
+		pullRequestState: async (run, issue) => {
+			const { octokit, owner, repo } = await planGithub(run.projectId);
+			const { data } = await octokit.pulls.get({
+				owner,
+				repo,
+				pull_number: issue.prNumber ?? 0,
+			});
+			if (data.merged) return "merged";
+			return data.state === "closed" ? "closed" : "open";
+		},
+		retarget: async (run, issue, base) => {
+			const { octokit, owner, repo } = await planGithub(run.projectId);
+			const target =
+				base ?? (await octokit.repos.get({ owner, repo })).data.default_branch;
+			await octokit.pulls.update({
+				owner,
+				repo,
+				pull_number: issue.prNumber ?? 0,
+				base: target,
+			});
 		},
 		routingRules: async () => {
 			try {

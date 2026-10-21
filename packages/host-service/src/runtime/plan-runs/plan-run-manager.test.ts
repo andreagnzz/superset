@@ -69,6 +69,17 @@ function setup(
 	const publishes: string[] = [];
 	const comments: string[] = [];
 	const verdicts = new Map<string, unknown>();
+	const baseHeads = new Map<string, string>();
+	const prStates = new Map<number, "open" | "merged" | "closed">();
+	const restacks: { key: string; onto?: string; upstream: string }[] = [];
+	const retargets: { key: string; base?: string }[] = [];
+	let restackResult:
+		| { ok: true; base: string; baseSha: string }
+		| { ok: false; reason: string; detail: string } = {
+		ok: true,
+		base: "ade/demo/A",
+		baseSha: "moved",
+	};
 	let clock = 1_000;
 	let nextPr = 1;
 	const manager = new PlanRunManager({
@@ -108,6 +119,19 @@ function setup(
 		},
 		verdictPath: (run, i, round) => `${run.id}/${i.key}-${round}.json`,
 		readVerdict: async (path) => verdicts.get(path) ?? null,
+		stackState: async (i) => {
+			const baseHead = baseHeads.get(i.key) ?? "base0";
+			return { base: i.baseBranch ?? "main", baseHead, mergeBase: "base0" };
+		},
+		restack: async (i, onto, upstream) => {
+			restacks.push({ key: i.key, onto, upstream });
+			return restackResult;
+		},
+		pullRequestState: async (_run, i) =>
+			prStates.get(i.prNumber ?? 0) ?? "open",
+		retarget: async (_run, i, base) => {
+			retargets.push({ key: i.key, base });
+		},
 		routingRules: async () => RULES,
 		now: () => clock,
 	});
@@ -136,7 +160,21 @@ function setup(
 	const advance = (ms: number) => {
 		clock += ms;
 	};
+	const finish = async (key: string) => {
+		await done(key);
+		await manager.tick();
+		await review(key, APPROVE);
+		await manager.tick();
+	};
 	return {
+		baseHeads,
+		prStates,
+		restacks,
+		retargets,
+		finish,
+		setRestackResult: (result: typeof restackResult) => {
+			restackResult = result;
+		},
 		dir,
 		agents,
 		manager,
@@ -345,6 +383,64 @@ describe("PlanRunManager", () => {
 			C: "queued",
 		});
 		expect(second.launches).toHaveLength(0);
+	});
+
+	describe("stacks", () => {
+		async function doneStack() {
+			const h = setup();
+			await importAndStart(h.manager, 2, [
+				issue("A"),
+				issue("B", { dependsOn: ["A"], stackOn: "A" }),
+			]);
+			await h.finish("A");
+			await h.finish("B");
+			expect(await h.statuses()).toEqual({ A: "done", B: "done" });
+			h.advance(61_000);
+			return h;
+		}
+
+		it("rebases a done child when its parent's branch moved", async () => {
+			const h = await doneStack();
+			h.baseHeads.set("B", "moved");
+			await h.manager.tick();
+			expect(h.restacks).toEqual([
+				{ key: "B", onto: "ade/demo/A", upstream: "base0" },
+			]);
+			expect((await h.current("B"))?.baseSha).toBe("moved");
+			expect(h.comments.at(-1)).toBe(
+				"B: ADE stack: rebased onto ade/demo/A (moved) after it changed.",
+			);
+		});
+
+		it("retargets a child onto its parent's base when the parent is merged", async () => {
+			const h = await doneStack();
+			h.prStates.set(1, "merged");
+			h.setRestackResult({ ok: true, base: "main", baseSha: "m1" });
+			await h.manager.tick();
+			expect(h.restacks).toEqual([
+				{ key: "B", onto: undefined, upstream: "base0" },
+			]);
+			expect(h.retargets).toEqual([{ key: "B", base: undefined }]);
+			expect((await h.current("B"))?.baseBranch).toBeUndefined();
+			expect(h.comments.at(-1)).toBe(
+				"B: ADE stack: #1 was merged; retargeted onto main and rebased.",
+			);
+		});
+
+		it("leaves an issue alone after its rebase failed", async () => {
+			const h = await doneStack();
+			h.baseHeads.set("B", "moved");
+			h.setRestackResult({
+				ok: false,
+				reason: "rebase-failed",
+				detail: "CONFLICT (content)",
+			});
+			await h.manager.tick();
+			expect((await h.current("B"))?.stackError).toContain("rebase-failed");
+			h.advance(61_000);
+			await h.manager.tick();
+			expect(h.restacks).toHaveLength(1);
+		});
 	});
 
 	it("rejects an invalid plan on import", async () => {

@@ -29,6 +29,12 @@ export type PlanRunIssue = PlanIssueSpec & {
 	reviewRound?: number;
 	reviewerTerminalId?: string;
 	reviewerNudged?: boolean;
+	/** The branch's git base; unset means the repository's default branch. */
+	baseBranch?: string;
+	/** The base commit the branch's own commits sit on, for a restack. */
+	baseSha?: string;
+	prState?: "open" | "merged" | "closed";
+	stackError?: string;
 	error?: string;
 };
 
@@ -42,6 +48,7 @@ export type PlanRun = {
 	status: PlanRunStatus;
 	createdAt: number;
 	updatedAt: number;
+	lastStackCheckAt?: number;
 	issues: PlanRunIssue[];
 };
 

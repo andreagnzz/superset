@@ -16,6 +16,8 @@ import type { PlanRun, PlanRunIssue, PlanRunStore } from "./store";
 
 const MAX_ATTEMPTS = 2;
 const MAX_REVIEW_ROUNDS = 3;
+// Stacks are checked against GitHub and the remote at most once a minute per run.
+const STACK_CHECK_MS = 60_000;
 // A Stop hook sent while the host was down is lost; the transcript is not.
 const STALE_STATE_MS = 2 * 60_000;
 const NUDGE_TEXT =
@@ -71,6 +73,31 @@ export interface PlanRunDeps {
 	verdictPath(run: PlanRun, issue: PlanRunIssue, round: number): string;
 	/** The verdict file's JSON, its raw text when it is not JSON, or null when absent. */
 	readVerdict(path: string): Promise<unknown>;
+	/** The issue's branch against its git base (the default branch when unset), fetched. */
+	stackState(issue: PlanRunIssue): Promise<{
+		base: string;
+		baseHead: string | null;
+		mergeBase: string | null;
+	}>;
+	/** Replays the issue's commits after `upstream` onto `onto` and force-pushes with a lease. */
+	restack(
+		issue: PlanRunIssue,
+		onto: string | undefined,
+		upstream: string,
+	): Promise<
+		| { ok: true; base: string; baseSha: string }
+		| { ok: false; reason: string; detail: string }
+	>;
+	pullRequestState(
+		run: PlanRun,
+		issue: PlanRunIssue,
+	): Promise<"open" | "merged" | "closed">;
+	/** Points the issue's pull request at `base` (the default branch when unset). */
+	retarget(
+		run: PlanRun,
+		issue: PlanRunIssue,
+		base: string | undefined,
+	): Promise<void>;
 	routingRules(): Promise<LaunchRules | null>;
 	now?: () => number;
 	setIntervalFn?: typeof setInterval;
@@ -194,9 +221,10 @@ export class PlanRunManager {
 				this.tickAgain = false;
 				await this.load();
 				for (const run of this.runs.values()) {
-					if (run.status !== "running") continue;
+					if (run.status !== "running" && run.status !== "done") continue;
 					try {
-						await this.advance(run);
+						if (run.status === "running") await this.advance(run);
+						await this.maintainStacks(run);
 					} catch (error) {
 						console.warn(`[plan-runs] run ${run.name} (${run.id}):`, error);
 					}
@@ -323,6 +351,9 @@ export class PlanRunManager {
 			});
 			issue.prNumber = pr.prNumber;
 			issue.prUrl = pr.prUrl;
+			// Where the branch left its base, for a later restack.
+			issue.baseSha ??=
+				(await this.deps.stackState(issue)).mergeBase ?? undefined;
 		} catch (error) {
 			const reason = error instanceof Error ? error.message : String(error);
 			return this.endIssue(run, issue, "failed", `publish failed: ${reason}`);
@@ -445,6 +476,71 @@ export class PlanRunManager {
 		await this.save(run);
 	}
 
+	/**
+	 * Keeps stacked pull requests on their base once their issues are done:
+	 * rebases a child whose parent branch moved, and retargets and rebases a
+	 * child whose parent was merged. Parents are handled before children, so a
+	 * change cascades down a stack in one pass.
+	 */
+	private async maintainStacks(run: PlanRun): Promise<void> {
+		if (this.now() - (run.lastStackCheckAt ?? 0) < STACK_CHECK_MS) return;
+		run.lastStackCheckAt = this.now();
+		const ordered = [...run.issues].sort(
+			(a, b) => stackDepth(run, a) - stackDepth(run, b),
+		);
+		for (const issue of ordered) {
+			if (!issue.prNumber || issue.stackError) continue;
+			try {
+				issue.prState = await this.deps.pullRequestState(run, issue);
+				await this.restackIssue(run, issue);
+			} catch (error) {
+				console.warn(
+					`[plan-runs] ${run.name}/${issue.key} stack check:`,
+					error,
+				);
+			}
+		}
+		await this.save(run);
+	}
+
+	private async restackIssue(run: PlanRun, issue: PlanRunIssue): Promise<void> {
+		if (issue.prState !== "open" || issue.status !== "done") return;
+		if (!issue.baseBranch || !issue.baseSha) return;
+		const parent = run.issues.find((i) => i.branch === issue.baseBranch);
+		const parentMerged = parent?.prState === "merged";
+		if (!parentMerged) {
+			const { baseHead } = await this.deps.stackState(issue);
+			if (!baseHead || baseHead === issue.baseSha) return;
+		}
+		const onto = parentMerged ? parent?.baseBranch : issue.baseBranch;
+		const result = await this.deps.restack(issue, onto, issue.baseSha);
+		if (!result.ok) {
+			issue.stackError = `restack onto ${onto ?? "the default branch"} failed (${result.reason}): ${result.detail.slice(0, 300)}`;
+			await this.deps
+				.comment(
+					run,
+					issue,
+					`ADE stack: ${issue.stackError}. Rebase it by hand.`,
+				)
+				.catch((error: unknown) => {
+					console.warn("[plan-runs] posting the stack error failed:", error);
+				});
+			return;
+		}
+		if (parentMerged) await this.deps.retarget(run, issue, onto);
+		issue.baseBranch = onto;
+		issue.baseSha = result.baseSha;
+		const note = parentMerged
+			? `#${parent?.prNumber} was merged; retargeted onto ${result.base} and rebased.`
+			: `rebased onto ${result.base} (${result.baseSha.slice(0, 7)}) after it changed.`;
+		await this.deps
+			.comment(run, issue, `ADE stack: ${note}`)
+			.catch((error: unknown) => {
+				console.warn("[plan-runs] posting the stack note failed:", error);
+			});
+		console.log(`[plan-runs] ${run.name}/${issue.key} ${note}`);
+	}
+
 	private async fail(
 		run: PlanRun,
 		issue: PlanRunIssue,
@@ -513,6 +609,7 @@ export class PlanRunManager {
 			});
 			Object.assign(issue, launched, {
 				branch,
+				baseBranch: parent?.branch,
 				status: "running",
 				launchedAt: this.now(),
 				askedAt: undefined,
@@ -534,6 +631,11 @@ export class PlanRunManager {
 		}
 		await this.save(run);
 	}
+}
+
+function stackDepth(run: PlanRun, issue: PlanRunIssue): number {
+	const parent = run.issues.find((i) => i.key === issue.stackOn);
+	return parent ? 1 + stackDepth(run, parent) : 0;
 }
 
 /** Issues holding an agent that works or is about to: implementers and reviewers. */
