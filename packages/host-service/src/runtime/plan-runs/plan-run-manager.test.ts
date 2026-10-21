@@ -10,6 +10,7 @@ import {
 	type PlanLaunchInput,
 	PlanRunInputError,
 	PlanRunManager,
+	reviewerPrompt,
 	workerPrompt,
 } from "./plan-run-manager";
 import { PlanRunStore } from "./store";
@@ -21,6 +22,7 @@ const RULES = parseLaunchRules(
 			M: { model: "sonnet", effort: "high" },
 			L: { model: "opus", effort: "high" },
 		},
+		roles: { review: { model: "opus", effort: "high" } },
 		rules: [],
 		escalation: { afterFailures: 1, maxTier: "L" },
 	}),
@@ -39,20 +41,36 @@ const issue = (key: string, extra: Record<string, unknown> = {}) => ({
 	...extra,
 });
 
+const APPROVE = { approve: true, findings: [] };
+const REFUSE = {
+	approve: false,
+	findings: [
+		{ file: "src/x.js", line: 3, severity: "blocker", fix: "start at 0" },
+	],
+};
+
 const dirs: string[] = [];
 afterEach(() => {
 	for (const dir of dirs.splice(0))
 		rmSync(dir, { recursive: true, force: true });
 });
 
+type FakeAgent = PlanAgentState & { answer?: string };
+
 function setup(
 	dir = mkdtempSync(join(tmpdir(), "plan-runs-")),
-	agents = new Map<string, PlanAgentState & { answer?: string }>(),
+	agents = new Map<string, FakeAgent>(),
 ) {
 	dirs.push(dir);
 	const launches: PlanLaunchInput[] = [];
-	const nudges: string[] = [];
+	const reviewers: { key: string; terminalId: string; model?: string }[] = [];
+	const sends: { terminalId?: string; text: string }[] = [];
+	const closed: string[] = [];
+	const publishes: string[] = [];
+	const comments: string[] = [];
+	const verdicts = new Map<string, unknown>();
 	let clock = 1_000;
+	let nextPr = 1;
 	const manager = new PlanRunManager({
 		store: new PlanRunStore(dir),
 		launch: async (input) => {
@@ -64,35 +82,57 @@ function setup(
 				terminalId,
 			};
 		},
-		agentState: async (i) =>
-			agents.get(i.terminalId ?? "") ?? { state: "gone" },
-		readAnswer: async (i) => agents.get(i.terminalId ?? "")?.answer ?? null,
-		nudge: async (i) => {
-			nudges.push(i.key);
+		launchReviewer: async ({ issue: i, model }) => {
+			const terminalId = `r-${i.key}-${reviewers.length + 1}`;
+			reviewers.push({ key: i.key, terminalId, model });
+			agents.set(terminalId, { state: "working" });
+			return { terminalId };
 		},
+		agentState: async (t) =>
+			agents.get(t.terminalId ?? "") ?? { state: "gone" },
+		readAnswer: async (t) => agents.get(t.terminalId ?? "")?.answer ?? null,
+		send: async (t, text) => {
+			sends.push({ terminalId: t.terminalId, text });
+		},
+		closeTerminal: async (t) => {
+			closed.push(t.terminalId ?? "");
+		},
+		publish: async ({ issue: i }) => {
+			publishes.push(i.key);
+			return i.prNumber && i.prUrl
+				? { prNumber: i.prNumber, prUrl: i.prUrl }
+				: { prNumber: nextPr, prUrl: `https://example.test/pull/${nextPr++}` };
+		},
+		comment: async (_run, i, body) => {
+			comments.push(`${i.key}: ${body.split("\n")[0]}`);
+		},
+		verdictPath: (run, i, round) => `${run.id}/${i.key}-${round}.json`,
+		readVerdict: async (path) => verdicts.get(path) ?? null,
 		routingRules: async () => RULES,
 		now: () => clock,
 	});
-	const stop = async (key: string, answer: string) => {
-		const run = (await manager.list())[0];
-		const terminalId = run?.issues.find((i) => i.key === key)?.terminalId;
+	const current = async (key: string) =>
+		(await manager.list())[0]?.issues.find((i) => i.key === key);
+	const idle = (terminalId: string, answer?: string) => {
 		clock += 10;
-		agents.set(terminalId ?? "", {
-			state: "idle",
-			lastEventAt: clock,
-			answer,
-		});
+		agents.set(terminalId, { state: "idle", lastEventAt: clock, answer });
 	};
-	const envelope = (key: string, kind: "DONE" | "BLOCKED") =>
-		kind === "DONE"
-			? `SUPERSET_WORKER_DONE\ntask: ${key}\nsummary: did ${key}`
-			: `SUPERSET_WORKER_BLOCKED\ntask: ${key}\nreason: stuck`;
+	const stop = async (key: string, answer: string) =>
+		idle((await current(key))?.terminalId ?? "", answer);
+	const done = (key: string) =>
+		stop(key, `SUPERSET_WORKER_DONE\ntask: ${key}\nsummary: did ${key}`);
+	const review = async (key: string, verdict: unknown) => {
+		const run = (await manager.list())[0];
+		const i = await current(key);
+		if (verdict !== undefined) {
+			verdicts.set(`${run?.id}/${key}-${i?.reviewRound}.json`, verdict);
+		}
+		idle(i?.reviewerTerminalId ?? "", "REVIEW_WRITTEN");
+	};
 	const statuses = async () =>
 		Object.fromEntries(
 			((await manager.list())[0]?.issues ?? []).map((i) => [i.key, i.status]),
 		);
-	const setAgent = (key: string, agent: PlanAgentState & { answer?: string }) =>
-		agents.set(`t-${key}-1`, agent);
 	const advance = (ms: number) => {
 		clock += ms;
 	};
@@ -101,144 +141,210 @@ function setup(
 		agents,
 		manager,
 		launches,
-		nudges,
+		reviewers,
+		sends,
+		closed,
+		publishes,
+		comments,
+		current,
 		stop,
-		envelope,
+		done,
+		review,
 		statuses,
-		setAgent,
 		advance,
 	};
 }
 
+async function importAndStart(
+	manager: PlanRunManager,
+	maxParallel: number,
+	issues: ReturnType<typeof issue>[],
+) {
+	const run = await manager.importRun({
+		projectId: "p",
+		name: "demo",
+		maxParallel,
+		issues,
+	});
+	await manager.start(run.id);
+	await manager.tick();
+	return run;
+}
+
 describe("PlanRunManager", () => {
-	it("keeps the cap and starts a stacked issue from its parent's branch", async () => {
-		const { manager, launches, stop, envelope, statuses } = setup();
-		const run = await manager.importRun({
-			projectId: "p",
-			name: "demo",
-			maxParallel: 1,
-			issues: [
-				issue("A"),
-				issue("B"),
-				issue("C", { dependsOn: ["A"], stackOn: "A" }),
-			],
+	it("publishes a finished issue, reviews it, then starts the issue stacked on it", async () => {
+		const h = setup();
+		await importAndStart(h.manager, 1, [
+			issue("A"),
+			issue("C", { dependsOn: ["A"], stackOn: "A" }),
+		]);
+		expect(h.launches.map((l) => l.issue.key)).toEqual(["A"]);
+
+		await h.done("A");
+		await h.manager.tick();
+		expect(h.publishes).toEqual(["A"]);
+		expect(await h.statuses()).toEqual({ A: "review", C: "queued" });
+		expect(h.reviewers[0]?.model).toBe("opus");
+
+		await h.review("A", APPROVE);
+		await h.manager.tick();
+		expect(h.comments).toEqual(["A: ADE review, round 1: approved"]);
+		expect(h.closed).toEqual(["r-A-1"]);
+		expect(h.launches[1]?.issue.key).toBe("C");
+		expect(h.launches[1]?.baseBranch).toBe("ade/demo/A");
+
+		await h.done("C");
+		await h.manager.tick();
+		expect((await h.current("C"))?.prNumber).toBe(2);
+	});
+
+	it("loops fresh reviewers until the fixed issue is approved", async () => {
+		const h = setup();
+		await importAndStart(h.manager, 1, [issue("A")]);
+		await h.done("A");
+		await h.manager.tick();
+
+		await h.review("A", REFUSE);
+		await h.manager.tick();
+		expect(await h.statuses()).toEqual({ A: "running" });
+		expect(h.sends.at(-1)?.terminalId).toBe("t-A-1");
+		expect(h.sends.at(-1)?.text).toContain("[blocker] src/x.js:3 start at 0");
+
+		// The implementer's old envelope is still its last answer until it replies.
+		await h.manager.tick();
+		expect(h.publishes).toEqual(["A"]);
+
+		await h.done("A");
+		await h.manager.tick();
+		expect(h.publishes).toEqual(["A", "A"]);
+		expect((await h.current("A"))?.prNumber).toBe(1);
+		expect((await h.current("A"))?.reviewerTerminalId).toBe("r-A-2");
+
+		await h.review("A", APPROVE);
+		await h.manager.tick();
+		expect(await h.statuses()).toEqual({ A: "done" });
+		expect(h.comments).toEqual([
+			"A: ADE review, round 1: changes requested",
+			"A: ADE review, round 2: approved",
+		]);
+	});
+
+	it("blocks an issue still refused at round 3, and its dependents", async () => {
+		const h = setup();
+		await importAndStart(h.manager, 1, [
+			issue("A"),
+			issue("B", { dependsOn: ["A"] }),
+		]);
+		for (let round = 1; round <= 3; round++) {
+			await h.done("A");
+			await h.manager.tick();
+			await h.review("A", REFUSE);
+			await h.manager.tick();
+		}
+		expect(await h.statuses()).toEqual({ A: "blocked", B: "blocked" });
+		expect((await h.current("A"))?.error).toBe(
+			"review not approved after 3 rounds",
+		);
+	});
+
+	it("nudges a reviewer once for its verdict, then replaces it", async () => {
+		const h = setup();
+		await importAndStart(h.manager, 1, [issue("A")]);
+		await h.done("A");
+		await h.manager.tick();
+
+		await h.review("A", undefined);
+		await h.manager.tick();
+		expect(h.sends.at(-1)).toEqual({
+			terminalId: "r-A-1",
+			text: "The verdict file is missing. Write it as your instructions say.",
 		});
-		await manager.start(run.id);
-		await manager.tick();
-		expect(launches.map((l) => l.issue.key)).toEqual(["A"]);
 
-		await stop("A", envelope("A", "DONE"));
-		await manager.tick();
-		expect(launches.map((l) => l.issue.key)).toEqual(["A", "B"]);
-
-		await stop("B", envelope("B", "DONE"));
-		await manager.tick();
-		expect(launches[2]?.issue.key).toBe("C");
-		expect(launches[2]?.baseBranch).toBe("ade/demo/A");
-
-		await stop("C", envelope("C", "DONE"));
-		await manager.tick();
-		expect(await statuses()).toEqual({ A: "done", B: "done", C: "done" });
-		expect((await manager.get(run.id))?.status).toBe("done");
+		await h.review("A", "not json");
+		await h.manager.tick();
+		expect(h.comments).toEqual([
+			"A: ADE review, round 1: the reviewer wrote no valid verdict",
+		]);
+		expect((await h.current("A"))?.reviewerTerminalId).toBe("r-A-2");
+		expect(await h.statuses()).toEqual({ A: "review" });
 	});
 
 	it("retries a blocked issue once a size up, then fails it and blocks its dependents", async () => {
-		const { manager, launches, stop, envelope, statuses } = setup();
-		const run = await manager.importRun({
-			projectId: "p",
-			name: "demo",
-			maxParallel: 2,
-			issues: [issue("A"), issue("B", { dependsOn: ["A"] })],
-		});
-		await manager.start(run.id);
-		await manager.tick();
-		expect(launches[0]?.model).toBe("haiku");
+		const h = setup();
+		await importAndStart(h.manager, 2, [
+			issue("A"),
+			issue("B", { dependsOn: ["A"] }),
+		]);
+		expect(h.launches[0]?.model).toBe("haiku");
 
-		await stop("A", envelope("A", "BLOCKED"));
-		await manager.tick();
-		expect(launches[1]?.model).toBe("sonnet");
-		expect(launches[1]?.issue.workspaceId).toBe("w-A");
-		expect(launches[1]?.prompt).toContain(
+		await h.stop("A", "SUPERSET_WORKER_BLOCKED\ntask: A\nreason: stuck");
+		await h.manager.tick();
+		expect(h.launches[1]?.model).toBe("sonnet");
+		expect(h.launches[1]?.issue.workspaceId).toBe("w-A");
+		expect(h.launches[1]?.prompt).toContain(
 			"A previous attempt failed: blocked: stuck",
 		);
 
-		await stop("A", envelope("A", "BLOCKED"));
-		await manager.tick();
-		expect(await statuses()).toEqual({ A: "failed", B: "blocked" });
-		expect(launches).toHaveLength(2);
+		await h.stop("A", "SUPERSET_WORKER_BLOCKED\ntask: A\nreason: stuck");
+		await h.manager.tick();
+		expect(await h.statuses()).toEqual({ A: "failed", B: "blocked" });
+		expect(h.launches).toHaveLength(2);
 	});
 
 	it("nudges once for a missing envelope and waits for the answer to it", async () => {
-		const { manager, launches, nudges, stop } = setup();
-		const run = await manager.importRun({
-			projectId: "p",
-			name: "demo",
-			maxParallel: 1,
-			issues: [issue("A")],
-		});
-		await manager.start(run.id);
-		await manager.tick();
+		const h = setup();
+		await importAndStart(h.manager, 1, [issue("A")]);
 
-		await stop("A", "All done, but no envelope.");
-		await manager.tick();
-		expect(nudges).toEqual(["A"]);
-		await manager.tick();
-		expect(launches).toHaveLength(1);
+		await h.stop("A", "All done, but no envelope.");
+		await h.manager.tick();
+		expect(h.sends.map((s) => s.terminalId)).toEqual(["t-A-1"]);
+		await h.manager.tick();
+		expect(h.launches).toHaveLength(1);
 
-		await stop("A", "Still no envelope.");
-		await manager.tick();
-		expect(launches).toHaveLength(2);
-	});
-
-	it("resumes from its files after a restart without starting anything twice", async () => {
-		const first = setup();
-		const run = await first.manager.importRun({
-			projectId: "p",
-			name: "demo",
-			maxParallel: 2,
-			issues: [issue("A"), issue("B"), issue("C", { dependsOn: ["A"] })],
-		});
-		await first.manager.start(run.id);
-		await first.manager.tick();
-		expect(first.launches).toHaveLength(2);
-
-		const second = setup(first.dir, first.agents);
-		await second.stop("A", second.envelope("A", "DONE"));
-		await second.manager.tick();
-		expect(second.launches.map((l) => l.issue.key)).toEqual(["C"]);
-		expect(await second.statuses()).toEqual({
-			A: "done",
-			B: "running",
-			C: "running",
-		});
+		await h.stop("A", "Still no envelope.");
+		await h.manager.tick();
+		expect(h.launches).toHaveLength(2);
 	});
 
 	it("reads a stale working agent's answer, as after a Stop the host missed", async () => {
-		const { manager, launches, statuses, setAgent, advance } = setup();
-		const run = await manager.importRun({
-			projectId: "p",
-			name: "demo",
-			maxParallel: 1,
-			issues: [issue("A")],
-		});
-		await manager.start(run.id);
-		await manager.tick();
-		setAgent("A", {
+		const h = setup();
+		await importAndStart(h.manager, 1, [issue("A")]);
+		h.agents.set("t-A-1", {
 			state: "working",
 			lastEventAt: 1_000,
 			answer: "Still going.",
 		});
-		advance(10 * 60_000);
-		await manager.tick();
-		expect(await statuses()).toEqual({ A: "running" });
-		setAgent("A", {
+		h.advance(10 * 60_000);
+		await h.manager.tick();
+		expect(await h.statuses()).toEqual({ A: "running" });
+
+		h.agents.set("t-A-1", {
 			state: "working",
 			lastEventAt: 1_000,
 			answer: "SUPERSET_WORKER_DONE\ntask: A\nsummary: ok",
 		});
-		await manager.tick();
-		expect(await statuses()).toEqual({ A: "done" });
-		expect(launches).toHaveLength(1);
+		await h.manager.tick();
+		expect(await h.statuses()).toEqual({ A: "review" });
+	});
+
+	it("resumes from its files after a restart without starting anything twice", async () => {
+		const first = setup();
+		await importAndStart(first.manager, 2, [
+			issue("A"),
+			issue("B"),
+			issue("C", { dependsOn: ["A"] }),
+		]);
+		expect(first.launches).toHaveLength(2);
+
+		const second = setup(first.dir, first.agents);
+		await second.done("A");
+		await second.manager.tick();
+		expect(await second.statuses()).toEqual({
+			A: "review",
+			B: "running",
+			C: "queued",
+		});
+		expect(second.launches).toHaveLength(0);
 	});
 
 	it("rejects an invalid plan on import", async () => {
@@ -269,6 +375,12 @@ it("workerPrompt never reads as the issue's own envelope", () => {
 	);
 	expect(prompt).toContain("task set to A");
 	expect(parseWorkerEnvelope(prompt, "A")).toBeNull();
+});
+
+it("reviewerPrompt names the pull request and the verdict file", () => {
+	const prompt = reviewerPrompt(7, "/runs/r/A-round1.json");
+	expect(prompt).toContain("`gh pr diff 7`");
+	expect(prompt).toContain("Write /runs/r/A-round1.json as:");
 });
 
 it("lastAssistantTurn keeps only the agent's last answer", () => {

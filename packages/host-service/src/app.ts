@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
@@ -69,8 +69,11 @@ import { matchesAgentBinding } from "./terminal-agents/matches-agent-binding";
 import { createCallerFactory } from "./trpc";
 import { appRouter } from "./trpc/router";
 import { runAgentInWorkspace } from "./trpc/router/agents";
+import { gitRouter } from "./trpc/router/git";
 import { gitStatusStore } from "./trpc/router/git/utils/git-status-store";
 import { stopLocalMobileServer } from "./trpc/router/mobile";
+import { pullRequestsRouter } from "./trpc/router/pull-requests";
+import { terminalRouter } from "./trpc/router/terminal";
 import {
 	resumeCrashedAgentSessions,
 	resumeSessionDepsFor,
@@ -347,8 +350,9 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			browserBridge: config.browserBridge,
 			launchRoutingFile,
 		}) as HostServiceContext;
+	const planRunsDir = join(dirname(config.dbPath), "plan-runs");
 	const planRuns = new PlanRunManager({
-		store: new PlanRunStore(join(dirname(config.dbPath), "plan-runs")),
+		store: new PlanRunStore(planRunsDir),
 		launch: async ({
 			run,
 			issue,
@@ -404,7 +408,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			const transcript = await readHarnessTranscriptOffLoop(bound.ref, 20_000);
 			return transcript ? lastAssistantTurn(transcript.text) : null;
 		},
-		nudge: async ({ terminalId, workspaceId }, text) => {
+		send: async ({ terminalId, workspaceId }, text) => {
 			if (!terminalId || !workspaceId) return;
 			const result = await sendAgentMessage({
 				terminalId,
@@ -416,7 +420,64 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				eventBus,
 			});
 			if ("error" in result) {
-				console.warn(`[plan-runs] nudge failed: ${result.error}`);
+				console.warn(`[plan-runs] message not delivered: ${result.error}`);
+			}
+		},
+		launchReviewer: async ({ issue, prompt, verdictFile, model, effort }) => {
+			await mkdir(dirname(verdictFile), { recursive: true });
+			const agent = await runAgentInWorkspace(planRunContext(), {
+				workspaceId: issue.workspaceId ?? "",
+				agent: "claude",
+				prompt,
+				model,
+				effort,
+			});
+			return { terminalId: agent.sessionId };
+		},
+		closeTerminal: async ({ terminalId, workspaceId }) => {
+			if (!terminalId || !workspaceId) return;
+			await createCallerFactory(terminalRouter)(planRunContext()).killSession({
+				terminalId,
+				workspaceId,
+			});
+		},
+		publish: async ({ issue, title, body }) => {
+			const ctx = planRunContext();
+			const workspaceId = issue.workspaceId ?? "";
+			await createCallerFactory(gitRouter)(ctx).push({ workspaceId });
+			if (issue.prNumber && issue.prUrl) {
+				return { prNumber: issue.prNumber, prUrl: issue.prUrl };
+			}
+			const pr = await createCallerFactory(pullRequestsRouter)(
+				ctx,
+			).createForWorkspace({ workspaceId, title, body });
+			return { prNumber: pr.number, prUrl: pr.url };
+		},
+		comment: async (run, issue, body) => {
+			if (!issue.prNumber) return;
+			await createCallerFactory(pullRequestsRouter)(
+				planRunContext(),
+			).addComment({
+				projectId: run.projectId,
+				prNumber: issue.prNumber,
+				body,
+			});
+		},
+		verdictPath: (run, issue, round) =>
+			join(planRunsDir, run.id, `${issue.key}-round${round}.json`),
+		readVerdict: async (path) => {
+			let text: string;
+			try {
+				text = await readFile(path, "utf8");
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+				throw error;
+			}
+			try {
+				return JSON.parse(text);
+			} catch {
+				// Not JSON: the raw text fails the verdict check with a clear error.
+				return text;
 			}
 		},
 		routingRules: async () => {

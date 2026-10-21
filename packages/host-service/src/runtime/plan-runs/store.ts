@@ -6,6 +6,7 @@ import type { PlanIssueSpec } from "@superset/shared/plan-issues";
 export type PlanIssueStatus =
 	| "queued"
 	| "running"
+	| "review"
 	| "done"
 	| "failed"
 	| "blocked";
@@ -17,9 +18,17 @@ export type PlanRunIssue = PlanIssueSpec & {
 	terminalId?: string;
 	branch?: string;
 	launchedAt?: number;
-	/** When the agent was asked for its missing envelope. */
-	nudgedAt?: number;
+	/** When the implementer was last sent a message; its earlier answers do not count. */
+	askedAt?: number;
+	/** The implementer was already asked for a missing envelope. */
+	nudged?: boolean;
 	summary?: string;
+	prNumber?: number;
+	prUrl?: string;
+	/** Review rounds started so far (fresh reviewer each round). */
+	reviewRound?: number;
+	reviewerTerminalId?: string;
+	reviewerNudged?: boolean;
 	error?: string;
 };
 
