@@ -26,16 +26,20 @@ None.
 
 - [x] (2026-10-21 20:00Z) Toy repository created (private), pushed, attached to the session; Superset project points at it.
 - [x] (2026-10-21 20:00Z) Plan written.
-- [ ] Milestone 1: `ade/workflow/scripts/ade.ts` (check, ready, tier, role, verdict, active) with `bun test`.
-- [ ] Milestone 2: the three skills, deployed next to the router.
-- [ ] Milestone 3: `/ade:plan` run once on the toy repo; output passes `check`.
+- [x] (2026-10-21 20:10Z) Milestone 1: `ade/workflow/scripts/ade.ts` (check, ready, tier, role, verdict, active); `bun test ade/workflow` 8 pass; strict typecheck clean.
+- [x] (2026-10-21 20:20Z) Milestone 2: the three skills, `claude plugin validate` passes, deployed to `~/.local/share/ade/workflow`, `CLAUDE_CODE_PLUGIN_DIRS` lists both plugins.
+- [x] (2026-10-21 20:05Z) Milestone 3: `/ade:plan` run headless on the toy repo wrote `plans/20261021-2203-string-helpers.{md,issues.json}`; `check` prints `OK 4 issues`.
 - [ ] Milestone 4: Phase 1 acceptance run (4 issues, 2 stacked, `--max-parallel 2`).
 - [ ] Milestone 5: roadmap updated, plan moved to `plans/done/`, PR merged.
 
 
 ## Surprises & Discoveries
 
-None yet.
+- Observation: a stacked issue has exactly one parent (`stackOn`), and nothing is merged into the default branch during a run, so an issue that needs the code of two issues forces the planner to chain them. Asked for a helper built on two others, `/ade:plan` chained all four issues (A ← B ← C ← D) and explained why; such a plan runs with no parallelism. A later milestone (roadmap M3/M4) could start a child from a merge of several parent branches.
+  Evidence: `plans/20261021-2203-string-helpers.md` and `.issues.json` in `andreagnzz/ade-sandbox` (`OK 4 issues, order: A, B, C, D`).
+
+- Observation: the planner answers in the owner's language (French), from the user-level `CLAUDE.md`; the files it writes follow the repository (English).
+  Evidence: the `/ade:plan` reply of 2026-10-21 22:03.
 
 
 ## Decision Log
@@ -76,7 +80,7 @@ To be written at the end.
 
 ## Context and Orientation
 
-Superset terms: a "workspace" is a git worktree (a second working folder of the same repository, on its own branch) that Superset creates under `~/.superset/worktrees/<project>/<name>`; an "agent" is a Claude Code process Superset starts in a terminal of a workspace (`superset agents create`), whose state (`starting`, `working`, `blocked`, `idle`) Superset tracks from Claude's hooks. The CLI commands used here, all verified on CLI 1.39.0: `superset projects list --local --json` (`repoPath`), `superset workspaces create --local --project <id> --name <n> --branch <b> --base-branch <base> --tag <t> --json` (returns `workspace.id`), `superset workspaces get <id> --local --json` (returns `worktreePath`), `superset agents create --local --workspace <id> --agent claude --model <m> --effort <e> --prompt <text> --json` (returns `sessionId`, the terminal id), `superset agents wait --local --workspace <id> --terminal <t> --until settled --timeout <s> --json` (returns `state`), `superset terminals read … --max-lines <n> --json` (returns `text`), `superset terminals send … --text <t> --wait --until settled --timeout <s>`, `superset terminals close …`, `superset snapshot --json` (`workspaces[].name`, `workspaces[].terminals[].agent.state`).
+Superset terms: a "workspace" is a git worktree (a second working folder of the same repository, on its own branch) that Superset creates under `~/.superset/worktrees/<project>/<name>`; an "agent" is a Claude Code process Superset starts in a terminal of a workspace (`superset agents create`), whose state (`starting`, `working`, `blocked`, `idle`) Superset tracks from Claude's hooks. The CLI commands used here, all verified on CLI 1.39.0: `superset projects list --local --json` (each entry has `id` and `path`, the main checkout), `superset workspaces create --local --project <id> --name <n> --branch <b> --base-branch <base> --tag <t> --json` (returns `workspace.id`), `superset workspaces get <id> --local --json` (returns `worktreePath`), `superset agents create --local --workspace <id> --agent claude --model <m> --effort <e> --prompt <text> --json` (returns `sessionId`, the terminal id), `superset agents wait --local --workspace <id> --terminal <t> --until settled --timeout <s> --json` (returns `state`), `superset terminals read … --max-lines <n> --json` (returns `text`), `superset terminals send … --text <t> --wait --until settled --timeout <s>`, `superset terminals close …`, `superset snapshot --json` (`workspaces[].name`, `workspaces[].terminals[].agent.state`).
 
 When `--base-branch` is not given, Superset starts a workspace from the repository's default branch, read from `refs/remotes/origin/HEAD` (`resolveDefaultBranchName` in `packages/host-service/src/runtime/git/refs.ts`), and prefers a local branch of that name over `origin/<name>` (`resolveStartPoint`). A worktree's branches live in the shared repository, so a child workspace based on its parent's branch name sees the parent's commits as soon as they are committed.
 

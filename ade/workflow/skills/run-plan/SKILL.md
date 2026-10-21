@@ -19,7 +19,7 @@ FILE=<issues file>
 bun "$ADE" check "$FILE"                      # must print OK …
 REPO=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 BASE=$(git -C "$REPO" symbolic-ref --short refs/remotes/origin/HEAD | sed 's#^origin/##')
-PROJECT=$(superset projects list --local --json | jq -r --arg r "$REPO" '.[] | select(.repoPath == $r) | .id')
+PROJECT=$(superset projects list --local --json | jq -r --arg r "$REPO" '.[] | select(.path == $r) | .id')
 (cd "$REPO" && gh repo set-default --view)    # must print owner/repo: without it a fork clone opens PRs upstream
 jq -r --arg p "$REPO" '.projects[$p].hasTrustDialogAccepted // false' ~/.claude.json   # must print true
 RUN=$(basename "$FILE" .issues.json | sed 's/^[0-9]*-[0-9]*-//')
