@@ -1,6 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { subagentItem } from "@superset/chat/core";
-import { isKnownItem } from "@superset/chat/protocol";
+import { isKnownItem, type UserContent } from "@superset/chat/protocol";
 import { MessageScroller } from "@superset/chat-ui/MessageScroller";
 import { ScrollToBottomButton } from "@superset/chat-ui/ScrollToBottomButton";
 import { cn } from "@superset/ui/utils";
@@ -12,11 +12,24 @@ import {
 import { omittedDescendantIds } from "../../utils/omittedDescendantIds";
 import { ChildItemsList } from "../Transcript/components/ChildItemsList";
 import { ToolContentList } from "../Transcript/components/ToolContentList";
+import { UserMessageRow } from "../Transcript/components/UserMessageRow";
 import { useNestedItems } from "../Transcript/providers/NestedItemsProvider";
 
 const RESUME_FOLLOW_PX = 24;
 
-export function SubagentView({ itemId }: { itemId: string }) {
+const QUEUED_PENDING = {
+	failed: false,
+	onRetry: () => {},
+	onDiscard: () => {},
+};
+
+export function SubagentView({
+	itemId,
+	queued = [],
+}: {
+	itemId: string;
+	queued?: readonly { id: string; content: UserContent[] }[];
+}) {
 	const { t } = useLingui();
 	const { snapshot, childrenByParent, requestItemBodies } = useNestedItems();
 	const item = subagentItem(snapshot.items, itemId);
@@ -64,6 +77,20 @@ export function SubagentView({ itemId }: { itemId: string }) {
 								</div>
 							)}
 							<ChildItemsList flat parentId={itemId} />
+							{queued.map((entry) => (
+								<UserMessageRow
+									harness={snapshot.session?.harness}
+									item={{
+										id: entry.id,
+										kind: "user_message",
+										startedAtMs: 0,
+										content: entry.content,
+									}}
+									key={entry.id}
+									pending={QUEUED_PENDING}
+									sender={t({ message: "Queued" })}
+								/>
+							))}
 						</MessageScroller.Content>
 					</MessageScroller.Viewport>
 					<div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">

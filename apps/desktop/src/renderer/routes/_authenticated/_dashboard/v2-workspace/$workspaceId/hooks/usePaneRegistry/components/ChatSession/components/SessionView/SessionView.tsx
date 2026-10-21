@@ -532,7 +532,10 @@ export function SessionView({
 						<TranscriptPluginsProvider value={plugins}>
 							<NestedItemsProvider value={nestedItems}>
 								{focusedSubagentId ? (
-									<SubagentView itemId={focusedSubagentId} />
+									<SubagentView
+										itemId={focusedSubagentId}
+										queued={subagent.queued}
+									/>
 								) : (
 									<Transcript
 										approvals={approvals}

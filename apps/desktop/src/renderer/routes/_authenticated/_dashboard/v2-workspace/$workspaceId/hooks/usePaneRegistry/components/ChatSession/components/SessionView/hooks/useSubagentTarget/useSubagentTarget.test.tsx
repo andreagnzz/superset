@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, expect, mock, test } from "bun:test";
 import type { SteerSubagentResult } from "@superset/chat/client";
 import type { SessionSnapshot } from "@superset/chat/core";
-import type { ToolCall, UserContent } from "@superset/chat/protocol";
+import type {
+	Item,
+	ToolCall,
+	UserContent,
+	UserMessage,
+} from "@superset/chat/protocol";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { useComposerDraft } from "../../../Composer/hooks/useComposerDraft";
 import { useSubagentTarget } from "./useSubagentTarget";
@@ -26,6 +31,10 @@ const explore: ToolCall = {
 };
 
 const typed: UserContent[] = [{ type: "text", text: "Skip the tests" }];
+
+function withItems(...items: Item[]): SessionSnapshot["items"] {
+	return new Map(items.map((item) => [item.id, { item, turnId: "t1" }]));
+}
 
 function itemsOf(item: ToolCall): SessionSnapshot["items"] {
 	return new Map([[item.id, { item, turnId: "t1" }]]);
@@ -170,4 +179,80 @@ test("drafts are kept per target", () => {
 	expect(
 		Object.keys(window.localStorage).filter((key) => key.includes("subagent")),
 	).toEqual([]);
+});
+
+test("a message shows as queued until the subagent's echo of it arrives", async () => {
+	let settle: (result: SteerSubagentResult) => void = () => {};
+	const steerSubagent = mock(
+		(_taskId: string, _content: UserContent[]) =>
+			new Promise<SteerSubagentResult>((resolve) => {
+				settle = resolve;
+			}),
+	);
+	const earlier: UserMessage = {
+		id: "sub:c1:user_message:u0",
+		kind: "user_message",
+		parentItemId: "subagent:c1",
+		content: typed,
+		startedAtMs: 2,
+	};
+	const hook = renderHook(
+		({ items }: { items: SessionSnapshot["items"] }) =>
+			useSubagentTarget({
+				client: { steerSubagent },
+				draftKey: "chat-v3-draft:t1",
+				focusedId: explore.id,
+				items,
+				onSend: () => {},
+				onStop: () => {},
+				onUnsent: () => {},
+			}),
+		{ initialProps: { items: withItems(explore, earlier) } },
+	);
+	let sent: Promise<unknown> = Promise.resolve();
+	act(() => {
+		sent = Promise.resolve(hook.result.current.onSend(typed, { steer: false }));
+	});
+	expect(hook.result.current.queued.map((entry) => entry.content)).toEqual([
+		typed,
+	]);
+	await act(async () => {
+		settle("steered");
+		await sent;
+	});
+	expect(hook.result.current.queued).toHaveLength(1);
+
+	hook.rerender({
+		items: withItems(explore, earlier, {
+			...earlier,
+			id: "sub:c1:user_message:u1",
+			startedAtMs: 3,
+		}),
+	});
+	expect(hook.result.current.queued).toEqual([]);
+});
+
+test("a message the subagent did not take leaves the queue", async () => {
+	const steerSubagent = mock(
+		async (_taskId: string, _content: UserContent[]) => {
+			throw new Error("socket closed");
+		},
+	);
+	const onUnsent = mock((_content: UserContent[], _draftKey: string) => {});
+	const hook = renderHook(() =>
+		useSubagentTarget({
+			client: { steerSubagent },
+			draftKey: "chat-v3-draft:t1",
+			focusedId: explore.id,
+			items: itemsOf(explore),
+			onSend: () => {},
+			onStop: () => {},
+			onUnsent,
+		}),
+	);
+	await act(async () => {
+		await hook.result.current.onSend(typed, { steer: false });
+	});
+	expect(hook.result.current.queued).toEqual([]);
+	expect(onUnsent).toHaveBeenCalledTimes(1);
 });

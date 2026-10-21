@@ -12,6 +12,7 @@ import type {
 	UserMessage,
 } from "@superset/chat/protocol";
 import { cleanup, fireEvent, render } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { NestedItemsProvider } from "../Transcript/providers/NestedItemsProvider";
 import { TranscriptPluginsProvider } from "../Transcript/providers/TranscriptPluginsProvider";
 import { SubagentView } from "./SubagentView";
@@ -98,7 +99,9 @@ function renderView(
 		onOpenSubagent = () => {},
 		onRespond = () => {},
 		plugins = [],
+		queued = [],
 	}: {
+		queued?: ComponentProps<typeof SubagentView>["queued"];
 		items?: readonly Item[];
 		onOpenSubagent?: (itemId: string) => void;
 		onRespond?: (approvalId: string, decision: Decision) => void;
@@ -117,7 +120,7 @@ function renderView(
 					openSubagent: onOpenSubagent,
 				}}
 			>
-				<SubagentView itemId={itemId} />
+				<SubagentView itemId={itemId} queued={queued} />
 			</NestedItemsProvider>
 		</TranscriptPluginsProvider>,
 	);
@@ -185,4 +188,17 @@ test("a plugin tool call reads the installed plugin", () => {
 	});
 	expect(view.container.textContent).toContain("list_issues");
 	expect(view.container.textContent).not.toContain("(linear)");
+});
+
+test("a message waiting for the subagent shows as queued at the bottom", () => {
+	const view = renderView("subagent:c1", {
+		queued: [
+			{ id: "steer:1", content: [{ type: "text", text: "Also check docs" }] },
+		],
+	});
+	const text = view.container.textContent ?? "";
+	expect(text).toContain("Queued");
+	expect(text.indexOf("Also check docs")).toBeGreaterThan(
+		text.indexOf("Here is what I found"),
+	);
 });
