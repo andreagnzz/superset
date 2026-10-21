@@ -55,7 +55,7 @@ Ce qui manque : l'estimateur, les dépendances entre issues, la limite d'agents 
 - **D2. Pas de changement de l'API cloud.** Les issues restent des tâches Superset (visibles dans l'app). Le graphe de dépendances et l'état des runs vivent dans `host.db`.
 - **D3. Prototype sans fork d'abord (Phase 1), puis durcissement dans le fork (Phases 2 et 3).** Tu règles tes règles et ton workflow en quelques jours, et le fork ne reçoit que du code déjà validé. Upstream sort une version environ tous les cinq jours (1.37 le 9/10, 1.38 le 14/10, 1.39 le 19/10) et reçoit 15 à 50 commits par jour : moins tu touches aux fichiers existants, moins tu as de conflits.
 - **D4. Le planificateur estime chaque issue (taille S, M, L ou XL).** L'estimateur automatique ne sert qu'aux lancements sans estimation (à la main, automations). L'agent qui a écrit le plan est celui qui a le plus de contexte.
-- **D5. Subagents : le modèle passe par un mod Claude Code.** L'événement `agent.spawn` peut renvoyer `{ model }`, qui remplace le modèle que Claude passe à l'appel. L'effort passe par le paramètre `effort` de l'appel Agent (Claude Code ≥ 2.1.292), réécrit par un hook. Ne jamais définir `CLAUDE_CODE_EFFORT_LEVEL` : il écrase tous les autres réglages d'effort, y compris les tiens.
+- **D5. Subagents : le modèle passe par un mod Claude Code.** Un hook `agent.spawn` appelle `next({ ...e, model })`, qui remplace le modèle que Claude passe à l'appel (renvoyer `{ model }` sans `next` ne démarre aucun subagent). L'effort passe par le paramètre `effort` de l'appel Agent (Claude Code ≥ 2.1.292), réécrit par un hook. Ne jamais définir `CLAUDE_CODE_EFFORT_LEVEL` : il écrase tous les autres réglages d'effort, y compris les tiens.
 - **D6. L'approbation de review est suivie dans `host.db`, pas sur GitHub.** GitHub refuse qu'un compte approuve sa propre PR.
 
 ## 5. Règles de routage (`routing.json`)
@@ -115,8 +115,8 @@ Un plugin Claude Code installé sur le VPS, dans ton repo de config `claude-setu
 
 Sur le VPS, avec Claude Code ≥ 2.1.292 :
 
-- **(a)** Un mod avec `on('agent.spawn', …)` qui renvoie `{ model: 'haiku' }` fait bien tourner le subagent sur Haiku (vérifier dans le transcript). Les champs de l'événement sont dans les types générés : lancer `claude --plugin-dir ./router`, puis lire `.claude-plugin/types/claude-code/index.d.ts` dans le dossier du mod.
-- **(b)** L'effort d'un subagent se change en réécrivant l'appel `Agent` : soit un hook `tool.call` du mod (`next({ ...e, input: { ...e.input, effort } })`), soit un hook `PreToolUse` (matcher `Agent`) qui renvoie `hookSpecificOutput.updatedInput`. Dans ce second cas, renvoyer l'entrée complète, pas seulement le champ changé.
+- **(a)** Un mod avec `on('agent.spawn', …)` qui appelle `next({ ...e, model: 'haiku' })` fait bien tourner le subagent sur Haiku (vérifier dans le transcript). Les champs de l'événement sont dans les types générés : lancer `claude --plugin-dir ./router`, puis lire `.claude-plugin/types/claude-code/index.d.ts` dans le dossier du mod.
+- **(b)** L'effort d'un subagent se change en réécrivant l'appel `Agent` : soit un hook `tool.call` du mod (`next({ ...e, effort })` : les arguments de l'outil sont à plat sur `e`), soit un hook `PreToolUse` (matcher `Agent`) qui renvoie `hookSpecificOutput.updatedInput`. Dans ce second cas, renvoyer l'entrée complète, pas seulement le champ changé.
 - **(c)** `claude --dangerously-skip-permissions --permission-mode plan` : noter quel flag gagne. Ça décide si un mode « Plan » peut réutiliser le preset `claude` (voir M0).
 
 Noter les résultats dans le Decision Log. Si (a) ou (b) échoue, repli : `CLAUDE_CODE_SUBAGENT_MODEL` + `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (Claude Code ≥ 2.1.257), qui impose un seul modèle à tous les subagents.
@@ -124,8 +124,8 @@ Noter les résultats dans le Decision Log. Si (a) ou (b) échoue, repli : `CLAUD
 ### P1.2 Mod `router` : l'estimateur des subagents
 
 - `routing.json` (section 5) dans le plugin.
-- `agent.spawn` : type du subagent → rôle ; sinon les règles sur son prompt ; sinon le modèle du parent. Renvoie `{ model }`.
-- Effort : selon le résultat du spike (b).
+- `agent.spawn` : type du subagent → rôle ; sinon les règles sur son prompt ; sinon le modèle du parent. Passe `{ ...e, model }` à `next`.
+- Effort : hook `tool.call` sur `Agent`, `next({ ...e, effort })` (validé par le spike (b)).
 - Chargé dans toutes les sessions Claude du VPS : installation utilisateur du plugin, ou `CLAUDE_CODE_PLUGIN_DIRS` dans la clé `env` de `~/.claude/settings.json`.
 - Tests : `claude plugin test`, un cas par règle.
 
@@ -255,8 +255,8 @@ Injecter le mod `router` dans chaque Claude lancé par Superset : `CLAUDE_CODE_P
 
 ## Progress
 
-- [ ] Phase 0 : bon fork, host VPS ajouté, choix des permissions, mises à jour automatiques coupées
-- [ ] P1.1 spike (a), (b), (c)
+- [ ] Phase 0 : bon fork, host VPS ajouté, choix des permissions, mises à jour automatiques coupées (fait le 21/10 : fork, inotify, permissions ; reste : installer et connecter le host sur le VPS)
+- [x] P1.1 spike (a), (b), (c) (21/10/2026, `plans/20261021-2020-phase0-host-setup-p1-1-spike.md`)
 - [ ] P1.2 mod `router`
 - [ ] P1.3 `/plan`
 - [ ] P1.4 `/run-plan`
@@ -273,6 +273,16 @@ Injecter le mod `router` dans chaque Claude lancé par Superset : `CLAUDE_CODE_P
 ## Decision Log
 
 Décisions D1 à D6 en section 4. Ajouter ici les résultats du spike P1.1 et chaque changement de cap, avec la date et la raison.
+
+Preuves détaillées (sorties de chaque cas) : `plans/20261021-2020-phase0-host-setup-p1-1-spike.md`, section « Artifacts and Notes ». Mod et script du spike : `plans/spikes/20261021-p1-1-router-spike/`.
+
+- **21/10/2026 — Spike (a) validé.** Sur Claude Code 2.1.305, `on('agent.spawn', …)` + `next({ ...e, model: 'haiku' })` fait tourner le subagent sur `claude-haiku-5-5` même quand le parent demande `model: "sonnet"` (vu dans `requestedModel` du transcript du subagent). Le repli `CLAUDE_CODE_SUBAGENT_MODEL` est inutile.
+- **21/10/2026 — Spike (b) validé.** `on('tool.call', { tool: 'Agent' }, …)` + `next({ ...e, effort: 'low' })` passe l'effort du subagent de `medium` à `low`. Même résultat avec tous tes plugins utilisateur chargés. Les voies `turn.step` et `PreToolUse` n'ont pas été nécessaires.
+- **21/10/2026 — Spike (c) : `--dangerously-skip-permissions` gagne toujours** sur `--permission-mode plan`, dans les deux ordres, en `-p` comme en interactif. Avec `--allow-dangerously-skip-permissions --permission-mode plan`, c'est le mode plan qui gagne, et le bypass reste accessible par Shift+Tab. Quand `--permission-mode` apparaît deux fois, le dernier gagne. Conséquence pour M0 : ajouter `--permission-mode plan` au preset actuel ne marche pas ; M0 doit d'abord changer la façon dont le preset donne le bypass (par exemple `--allow-dangerously-skip-permissions --permission-mode bypassPermissions`).
+- **21/10/2026 — Pas de plan Pro.** Phase 0 se fait sur le VPS seul : CLI installée et connectée sur le VPS, pilotage en CLI par SSH. On ne reconstruit pas et on ne contourne pas Remote Access dans le fork : c'est une fonction payante (`GATED_FEATURES.REMOTE_ACCESS`), et la licence Elastic 2.0 l'interdit. Les phases 1 et 2 n'en ont pas besoin. La phase 3 (l'app Mac qui pilote le VPS) en a besoin : à rediscuter avant de la commencer.
+- **21/10/2026 — Permissions : bypass gardé** pour le preset `claude` (Phase 0 étape 5). Réversible dans les réglages d'agent du host.
+- **21/10/2026 — Le VPS a 11 Go de RAM, pas 16.** À prendre en compte pour la limite par défaut de M3.
+- **21/10/2026 — Fork déjà en place** : `origin` = `andreagnzz/superset` (même HEAD qu'upstream), `upstream` = `superset-sh/superset`.
 
 ## Sources
 

@@ -29,17 +29,7 @@ The official Superset build (not this fork) is what Phase 0 installs on the VPS.
 
 ## Open Questions
 
-Each question blocks the step named in brackets. Each has a placeholder in the Decision Log.
-
-Q1 [Milestone 2, permissions]. The built-in `claude` agent preset launches `claude --dangerously-skip-permissions` (file `packages/shared/src/builtin-terminal-agents.ts`, entry `id: "claude"`). With that flag, an agent can read and write everything the Unix user `andrea` can, including the CodeTgh hub that also runs on this VPS. Without it, agents stop in the `blocked` state and wait for a human approval, which the Phase 1 queue cannot handle. Recommendation: keep the bypass for now; the choice is reversible later in the host's agent settings, without code. Keep the bypass, or remove it?
-
-Q2 [Milestone 1, inotify]. "inotify" is the Linux kernel service that tells a program when a file changes; Superset watches every worktree with it. The current limit is `fs.inotify.max_user_instances = 128` and `fs.inotify.max_user_watches = 93013`. The plan raises them to 1024 and 524288 in a new file `/etc/sysctl.d/60-superset-inotify.conf`. This is a system change on the VPS. OK to apply it?
-
-Q3 [Milestone 1, machine id]. The Superset host id comes from `/etc/machine-id`. The value on this VPS is `ddd44e076fd74e7eb5a3fcd88f3e9456`, which is a valid id (the CLI's own check, `machineIdProblem` in `packages/cli/src/lib/ssh-host-setup/machine-id.ts`, only rejects an empty or malformed value). The CLI cannot tell whether another machine has the same id. Was this VPS created from an image that another of your Superset hosts also used? If no, keep the id.
-
-Q4 [Milestone 2, plan]. Driving a remote host from the Mac app goes through the Superset relay, which is the "Remote Access" feature of the Pro plan. Do you have Pro, or will you take it now? Without Pro, Milestone 2's acceptance becomes "host online in `superset status` on the VPS, workspace and agent created with the CLI over SSH".
-
-Q5 [Milestone 4, publishing]. At the end, push the branch `chore/ade-phase0-p1-1-spike` to `origin` (`andreagnzz/superset`) and open a draft pull request against the fork's `main`? Recommendation: yes, the roadmap asks for one PR per milestone.
+None. Q1 to Q5 (permissions, inotify, machine id, Pro plan, publishing) were answered on 2026-10-21; the answers and their reasons are in the Decision Log.
 
 
 ## Progress
@@ -47,11 +37,11 @@ Q5 [Milestone 4, publishing]. At the end, push the branch `chore/ade-phase0-p1-1
 - [x] (2026-10-21 18:20Z) Discovery: read the roadmap, the ExecPlan template, the three AGENTS.md files, the mod API types of Claude Code 2.1.305, and checked the VPS state.
 - [x] (2026-10-21 18:20Z) Phase 0 step 1 (fork): already done before this plan, see Surprises & Discoveries.
 - [x] (2026-10-21 18:40Z) Owner approved this plan and answered Q1, Q2, Q3, Q5.
-- [ ] Owner answers Q4 (Pro plan).
-- [ ] Milestone 1: VPS ready for `superset hosts add` (inotify raised, prerequisites checked).
-- [ ] Milestone 2: owner adds the host from the Mac; host online and reachable from the app.
-- [ ] Milestone 3: spike (a) model, (b) effort, (c) permission flags, with evidence.
-- [ ] Milestone 4: results recorded in the roadmap; branch pushed; draft PR opened; this plan moved to `plans/done/`.
+- [x] (2026-10-21 18:55Z) Owner answered Q4: no Pro plan. Milestone 2 switches to the VPS-only path.
+- [x] (2026-10-21 18:45Z) Milestone 1: prerequisites checked; inotify raised to 1024 / 524288.
+- [ ] Milestone 2: install the CLI on the VPS, owner signs in, host online in `superset status`, workspace and agent created with the CLI (remaining, needs the owner for the sign-in).
+- [x] (2026-10-21 19:05Z) Milestone 3: spike (a) model, (b) effort, (c) permission flags, with evidence in Artifacts and Notes.
+- [ ] Milestone 4 (completed: results recorded in this plan and in the roadmap; remaining: push, draft PR, and moving this plan to `plans/done/` once Milestone 2 is done).
 
 
 ## Surprises & Discoveries
@@ -79,6 +69,12 @@ Q5 [Milestone 4, publishing]. At the end, push the branch `chore/ade-phase0-p1-1
 
 - Observation: lingering is already on for `andrea`, so the host service will survive logout.
   Evidence: `loginctl show-user andrea` prints `Linger=yes`.
+
+- Observation: `--dangerously-skip-permissions` always wins over `--permission-mode plan`, in both orders, headless and interactive. `--allow-dangerously-skip-permissions --permission-mode plan` starts in plan mode, with bypass one Shift+Tab away. When `--permission-mode` is given twice, the last one wins.
+  Evidence: cases C1, C2, C1i, C3, C3i and C4 in Artifacts and Notes.
+
+- Observation: `claude plugin validate` warns "gating hook without .catch" for both hooks. Without `.catch`, a hook that throws is skipped and the subagent starts with the values the caller asked for. That is the wanted behaviour for a router: a broken rule must not block subagents.
+  Evidence: validate output, lines `./register.ts gating hook without .catch: agent.spawn` and `… tool.call{tool=Agent}`.
 
 - Observation: `systemctl --user` fails from this agent's shell with "Failed to connect to bus: No medium found", because the shell has no `XDG_RUNTIME_DIR`. A normal SSH login sets it. `superset hosts add` runs over SSH, so this is expected to be fine, but Milestone 2 checks it.
 
@@ -113,14 +109,24 @@ Q5 [Milestone 4, publishing]. At the end, push the branch `chore/ade-phase0-p1-1
   Rationale: the VPS is a single Contabo machine and the only Linux host of the account, so no other host can share its id. Regenerating it on a running VPS can change network identifiers derived from it (for example a DHCP client id), so it is done only if a second host built from the same image is added.
   Date/Author: 2026-10-21, owner and Claude.
 
-- Decision (placeholder Q4, Pro plan): pending; the question was re-explained to the owner on 2026-10-21. Milestones 1 and 3 do not depend on it.
+- Decision (Q4): no Pro plan. Phase 0 is done on the VPS alone: install the CLI there, sign in, start the host, and drive it with the CLI over SSH. The paid Remote Access feature is not rebuilt or bypassed in the fork.
+  Rationale: Remote Access is a paywalled feature (`GATED_FEATURES.REMOTE_ACCESS`, `apps/desktop/src/renderer/components/Paywall/`), and the Elastic License 2.0 of the repository forbids circumventing functionality protected by the license. Roadmap phases 1 and 2 run entirely on the VPS through the CLI and do not need it; only phase 3 (the Mac app driving the VPS) does.
+  Date/Author: 2026-10-21, owner and Claude.
 
 - Decision (Q5): push the branch to `origin` and open a draft PR against the fork's `main`.
   Rationale: the roadmap asks for one PR per milestone.
   Date/Author: 2026-10-21, owner.
-- Decision (placeholder, spike result (a)): pending.
-- Decision (placeholder, spike result (b)): pending.
-- Decision (placeholder, spike result (c)): pending.
+- Decision (spike (a)): a mod changes a subagent's model with `on('agent.spawn', …)` and `next({ ...e, model })`, even when the caller passed an explicit `model`. P1.2 uses this. The fallback `CLAUDE_CODE_SUBAGENT_MODEL` is not needed.
+  Rationale: case A1 ran the subagent on `claude-haiku-5-5` while the parent asked for `sonnet`; baseline A0 ran it on `claude-sonnet-5-5`.
+  Date/Author: 2026-10-21, Claude (spike).
+
+- Decision (spike (b)): a mod changes a subagent's effort with `on('tool.call', { tool: 'Agent' }, …)` and `next({ ...e, effort })`. The `turn.step` and classic `PreToolUse` routes were not needed and were not tested.
+  Rationale: case B1 recorded `effort: "low"` against `medium` in A0; case AB combined both rewrites; case U1 gave the same result with the owner's user plugins loaded.
+  Date/Author: 2026-10-21, Claude (spike).
+
+- Decision (spike (c)): roadmap milestone M0 cannot simply append `--permission-mode plan` to the current `claude` preset, because `--dangerously-skip-permissions` overrides it. M0 must change how the preset grants bypass, for example `claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions`, so that a mode appended later (`--permission-mode plan`) wins as the last flag. M0's own ExecPlan decides, and must check the resume and fork commands of the preset too.
+  Rationale: C1, C2 and C1i stayed in bypass mode and created the file; C3, C3i and C4 started in plan mode and did not.
+  Date/Author: 2026-10-21, Claude (spike).
 
 
 ## Outcomes & Retrospective
@@ -147,7 +153,7 @@ Claude Code terms used below. A "subagent" is a child agent that Claude starts w
 
 Milestone 1 prepares the VPS. The agent working on the VPS checks the prerequisites that `superset hosts add` needs and raises the inotify limits. Nothing in the repository changes. At the end, the VPS meets every check of roadmap Phase 0 step 3.
 
-Milestone 2 is done by the owner on the Mac, because it needs the Mac app, a browser sign-in and SSH from the Mac. The owner installs the desktop app, signs in, takes Pro if Q4 says so, installs the Superset CLI on the Mac if `superset` is not on the Mac's `PATH`, and runs `superset hosts add andrea@claude-vps`. The agent then checks the host from the VPS side. At the end, the Phase 0 acceptance of the roadmap holds.
+Milestone 2 changed after Q4 (no Pro plan): it runs on the VPS. The agent downloads `https://superset.sh/cli/install.sh`, reads it, and runs it; the owner signs the CLI in (`~/superset/bin/superset auth login`, or `--api-key=-` with a key created in the web app); the agent starts the host without auto-update and checks `superset status`, then creates a workspace and an agent with the CLI. How the host survives a reboot (a systemd user unit like the one `hosts add` writes) is settled in that step and recorded here. The original Mac path below applies only with Pro. It was: the owner works on the Mac, because it needs the Mac app, a browser sign-in and SSH from the Mac. The owner installs the desktop app, signs in, takes Pro if Q4 says so, installs the Superset CLI on the Mac if `superset` is not on the Mac's `PATH`, and runs `superset hosts add andrea@claude-vps`. The agent then checks the host from the VPS side. At the end, the Phase 0 acceptance of the roadmap holds.
 
 Milestone 3 is the spike. It can run before or in parallel with Milestone 2, because it only needs Claude Code on the VPS. The agent creates a three-file mod plus a runner script under `plans/spikes/20261021-p1-1-router-spike/`, validates it with `claude plugin validate`, and runs a fixed set of cases with `claude -p`. Each case prints the model and effort that the subagent actually ran with, read from its transcript. Time box: half a day. If a case fails, the agent tries the next route listed for that question before it concludes.
 
@@ -294,7 +300,23 @@ Git: every step works on the branch `chore/ade-phase0-p1-1-spike`; nothing is fo
 
 ## Artifacts and Notes
 
-To be filled in Milestone 3 with the output of each case (one line per case, `{requestedModel, model, effort}` for A and B, mode and file presence for C).
+Claude Code 2.1.305, 2026-10-21. Cases A and B print what the subagent ran with, read from its transcript by `run.sh`. Every run exited 0.
+
+    A0  (no rewrite)                         {"requestedModel":"claude-sonnet-5-5","model":"claude-sonnet-5-5","effort":"medium"}
+    A1  ROUTER_SPIKE_MODEL=haiku             {"requestedModel":"claude-haiku-5-5","model":"claude-haiku-5-5","effort":"medium"}
+    B1  ROUTER_SPIKE_EFFORT=low              {"requestedModel":"claude-sonnet-5-5","model":"claude-sonnet-5-5","effort":"low"}
+    AB  both                                 {"requestedModel":"claude-haiku-5-5","model":"claude-haiku-5-5","effort":"low"}
+    U1  both, user settings and plugins on   {"requestedModel":"claude-haiku-5-5","model":"claude-haiku-5-5","effort":"low"}
+
+Case C prints the `permissionMode` of the stream-json `init` event and whether the agent created `probe.txt`. Interactive cases (suffix `i`) show the footer of `claude` started in `tmux`.
+
+    C1   --dangerously-skip-permissions --permission-mode plan        mode=bypassPermissions probe=created
+    C2   --permission-mode plan --dangerously-skip-permissions        mode=bypassPermissions probe=created
+    C3   --allow-dangerously-skip-permissions --permission-mode plan  mode=plan probe=absent
+    C4   --allow-dangerously-skip-permissions --permission-mode bypassPermissions --permission-mode plan
+                                                                       mode=plan probe=absent
+    C1i  --dangerously-skip-permissions --permission-mode plan        ⏵⏵ bypass permissions on (shift+tab to cycle)
+    C3i  --allow-dangerously-skip-permissions --permission-mode plan  ⏸ plan mode on (shift+tab to cycle)
 
 
 ## Interfaces and Dependencies
@@ -354,3 +376,8 @@ The classic-hook fallback (B3), only if B2 also fails: a shell script that reads
     prompt "Reply with the single word OK.". Then reply DONE.
 
 Then read `session_id` from the JSON result, find `~/.claude/projects/*/<session_id>/subagents/*.jsonl`, and print `jq -c 'select(.type=="assistant") | {requestedModel, model: .message.model, effort}' | sort -u`. If no subagent transcript exists, print the parent's final `result` text and exit 1, so a run where the parent skipped the Agent call cannot pass silently.
+
+
+## Revision notes
+
+2026-10-21: recorded the owner's answers (Q1 to Q5), the Milestone 1 result and the spike results (a), (b), (c). Milestone 2 moved from the Mac to the VPS because the owner has no Pro plan, so the relay-based Remote Access is not available.
