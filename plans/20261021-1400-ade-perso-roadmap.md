@@ -262,12 +262,12 @@ Injecter le mod `router` dans chaque Claude lancé par Superset : `CLAUDE_CODE_P
 - [x] P1.4 `/run-plan` (21/10/2026, `/ade:run-plan` ; recette Phase 1 passée)
 - [x] P1.5 `/review-pr` (21/10/2026, `/ade:review-pr` ; boucle vérifiée sur un bug planté)
 - [ ] M0 mode Plan
-- [ ] M1 estimateur
+- [x] M1 estimateur (21/10/2026, activé par `routing.json` à côté de `host.db`, sans migration)
 - [ ] M2 plans et issues dans `host.db`
 - [ ] M3 file d'attente
 - [ ] M4 PR empilées et restack
 - [ ] M5 boucle de review
-- [ ] M6 mod injecté par le host
+- [ ] M6 mod injecté par le host (inutile pour l'instant : `CLAUDE_CODE_PLUGIN_DIRS` dans `~/.claude/settings.json` charge déjà le mod dans toutes les sessions Claude du VPS)
 - [ ] Phase 3 vues Plan et Run
 
 ## Decision Log
@@ -293,6 +293,8 @@ Preuves détaillées (sorties de chaque cas) : `plans/done/20261021-2020-phase0-
 - **21/10/2026 — Phase 1 terminée.** Skills dans `ade/workflow/` (plugin `ade` : `/ade:plan`, `/ade:run-plan`, `/ade:review-pr`), avec `ade/workflow/scripts/ade.ts` pour tout ce qui est calcul (graphe, issues prêtes, tier avec escalade, verdict, agents actifs). Déployées à côté du router ; `CLAUDE_CODE_PLUGIN_DIRS` liste les deux dossiers. Repo jouet : `andreagnzz/ade-sandbox` (privé), projet Superset `ade-sandbox`. Recette (4 issues, C empilée sur A, D sur B, `--max-parallel 2`) : jamais plus de 2 agents actifs sur 90 relevés, bases de PR correctes, 4 PR approuvées par un reviewer neuf. Boucle de review vérifiée sur un bug planté : refus au tour 1, correction, approbation au tour 2. Détails : `plans/done/20261021-2158-p1-3-p1-5-plan-run-review-skills.md`.
 - **21/10/2026 — Une issue n'empile que sur un parent.** Le planificateur chaîne donc les issues qui ont besoin du code de deux autres (plus de parallélisme). À traiter en M3/M4 (partir d'un merge des branches parentes).
 - **21/10/2026 — M0 n'a pas d'effet avant la Phase 3.** Le mode se choisit dans l'app desktop, et la CLI n'a pas de `--mode` ; l'app sur le Mac est l'officielle, donc une entrée `claude` dans `AGENT_MODE_SUPPORT` du fork ne s'afficherait nulle part. M0 attend que le desktop soit construit depuis le fork, et devra changer le bypass du preset (spike (c)).
+- **21/10/2026 — M1 en service.** Un lancement Claude sur le host du VPS sans `--model` ni `--effort` prend modèle et effort dans `~/.superset/host/<org>/routing.json`, qui est un lien vers `~/.local/share/ade/router/routing.json` (un seul fichier pour subagents et lancements). Retirer le lien coupe le routage, sans redémarrage. Pas de colonne dans `host_settings` : une migration host du fork entrerait en collision avec la numérotation d'upstream à chaque synchro. Recette : « fix typo in README » → Haiku/low avec la ligne `[routing]` ; `--model opus` → Opus ; une reprise → pas de routage. Fork recompilé et réinstallé (build précédent du fork gardé dans `~/superset-fork-prev`). Détails : `plans/done/20261021-2240-m1-launch-estimator.md`.
+- **21/10/2026 — Pause avant M2 à M5 (décision D3).** La Phase 1 couvre déjà les objectifs 1 à 4 de la section 1, et le coordinateur tourne sur le VPS Mac fermé. M2 à M5 ajoutent la reprise après crash, le restack automatique et la review côté host, mais aussi beaucoup de code dans le host du fork. D3 dit de valider le workflow en Phase 1 pendant quelques jours avant de durcir le fork. Pour M2 : stocker l'état des runs hors de `host.db` (fichier JSON ou base séparée), pour la même raison que M1 (pas de migration host dans le fork).
 - **21/10/2026 — Remote `origin` en SSH** (`git@github.com:andreagnzz/superset.git`) : git n'a pas d'identifiants HTTPS sur le VPS, alors que la clé SSH de `gh` marche.
 
 ## Sources

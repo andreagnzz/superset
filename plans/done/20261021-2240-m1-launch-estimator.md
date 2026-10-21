@@ -26,7 +26,7 @@ None.
 
 - [x] (2026-10-21 20:40Z) `packages/shared/src/agent-launch-estimator.ts` with tests (5 pass).
 - [x] (2026-10-21 20:45Z) Host wiring: `launchRoutingFile` in the request context, `buildTerminalAgentLaunch` routes a fresh launch; 3 host tests; `agents`, `workspaces`, `workspace-creation` suites pass (404 tests); typecheck of `shared` and `host-service` clean; Biome clean.
-- [ ] Build the fork, install it on the VPS, link `routing.json`, run the acceptance commands.
+- [x] (2026-10-21 20:37Z) Fork built from `main` (Docker, CI steps, headless E2E passed), installed on the VPS (`~/superset`; previous fork in `~/superset-fork-prev`), `routing.json` linked, acceptance passed.
 
 
 ## Surprises & Discoveries
@@ -59,7 +59,7 @@ None yet.
 
 ## Outcomes & Retrospective
 
-To be written at the end.
+Done. Launches on the VPS host that name no model or effort now follow the same `routing.json` as subagents, and the file's link is the on/off switch. The `size` and `role` inputs of the estimator are unused until a host-side caller passes them (roadmap M3 and M5).
 
 
 ## Context and Orientation
@@ -106,7 +106,15 @@ Removing the link `~/.superset/host/<organization id>/routing.json` turns routin
 
 ## Artifacts and Notes
 
-To be filled.
+Acceptance on the VPS, 2026-10-21 22:35 local, workspace `m1-check` of the toy project, `~/.superset/host/<org>/routing.json -> ~/.local/share/ade/router/routing.json`:
+
+    agents create --agent claude --prompt "fix typo in README: … reply OK"
+        header: Haiku 5.5 with low effort
+        host log: [routing] model=haiku effort=low reason=rule /typo|rename|bump|lint|format|readme|changelog/ -> S
+    agents create --agent claude --model opus --prompt "fix typo in README: … reply OK"
+        header: Opus 5.5            (no [routing] line)
+    agents create --agent claude --resume-session <first session> --prompt "…"
+        header: Haiku 5.5           (no [routing] line: one line in total for the three launches)
 
 
 ## Interfaces and Dependencies
@@ -119,3 +127,8 @@ To be filled.
 
     // packages/host-service/src/trpc/router/agents/agents.ts
     export function buildTerminalAgentLaunch(db: HostDb, input: AgentRunInput, options?: { routingFile?: string }): { fullCommand: string; label: string };
+
+
+## Revision notes
+
+2026-10-21: recorded the VPS acceptance and moved the plan to `plans/done/`.
