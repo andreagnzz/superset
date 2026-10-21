@@ -1,0 +1,24 @@
+{
+	"version": 1,
+	"tiers": {
+		"S": { "model": "haiku", "effort": "low" },
+		"M": { "model": "sonnet", "effort": "high" },
+		"L": { "model": "opus", "effort": "high" },
+		"XL": { "model": "opus", "effort": "xhigh" }
+	},
+	"roles": {
+		"plan": { "model": "opus", "effort": "xhigh" },
+		"review": { "model": "opus", "effort": "high" },
+		"explore": { "model": "haiku", "effort": "low" }
+	},
+	"subagents": { "Explore": "explore", "Plan": "plan", "*": "rules-or-parent" },
+	"rules": [
+		{ "match": "typo|rename|bump|lint|format|readme|changelog", "tier": "S" },
+		{
+			"match": "migration|concurren|race condition|security|auth|architecture|refonte",
+			"tier": "XL"
+		}
+	],
+	"fallbackTier": "M",
+	"escalation": { "afterFailures": 1, "maxTier": "XL" }
+}
