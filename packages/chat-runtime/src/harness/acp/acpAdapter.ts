@@ -1631,10 +1631,10 @@ export class AcpAdapter implements HarnessAdapter {
 			subagentStatus?: SubagentStatus;
 		},
 	): void {
-		this.main.flush();
+		const parent = this.subagents.get(parentSessionId);
+		(parent?.stream ?? this.main).flush();
 		const title = name || task || "";
 		const startedAtMs = this.nextStartMs();
-		const parent = this.subagents.get(parentSessionId);
 		const toolCallId = rfd?.toolCallId;
 		const parentItemId = !toolCallId
 			? parent?.item.id

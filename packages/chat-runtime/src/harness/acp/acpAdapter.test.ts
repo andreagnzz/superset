@@ -3307,6 +3307,38 @@ describe("AcpAdapter on protocol v2", () => {
 		await adapter.dispose();
 	});
 
+	it("a subagent starting its own subagent leaves the main message whole", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_spawned",
+			subagentSessionId: "child-1",
+			name: "Outer",
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "agent_message_chunk",
+			content: { type: "text", text: "Hello " },
+		});
+		agent.notify("child-1", {
+			sessionUpdate: "subagent_spawned",
+			subagentSessionId: "child-2",
+			name: "Inner",
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "agent_message_chunk",
+			content: { type: "text", text: "world" },
+		});
+		await flush();
+		const mainMessageIds = new Set(
+			itemsOf(events)
+				.filter((item) => item.kind === "agent_message" && !item.parentItemId)
+				.map((item) => item.id),
+		);
+		expect(mainMessageIds.size).toBe(1);
+		await adapter.dispose();
+	});
+
 	it("streams a subagent's messages and reasoning as nested items", async () => {
 		const agent = new FakeAcpAgent();
 		const { adapter, events } = startAdapter(agent);
