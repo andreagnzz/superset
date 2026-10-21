@@ -257,7 +257,7 @@ Injecter le mod `router` dans chaque Claude lancé par Superset : `CLAUDE_CODE_P
 
 - [x] Phase 0 : bon fork, host VPS ajouté, choix des permissions, mises à jour automatiques coupées (21/10/2026, sans Pro : host piloté en CLI sur le VPS)
 - [x] P1.1 spike (a), (b), (c) (21/10/2026, `plans/done/20261021-2020-phase0-host-setup-p1-1-spike.md`)
-- [ ] P1.2 mod `router`
+- [x] P1.2 mod `router` (21/10/2026, `ade/router/`, déployé sur le VPS ; `plans/done/20261021-2139-p1-2-router-mod.md`)
 - [ ] P1.3 `/plan`
 - [ ] P1.4 `/run-plan`
 - [ ] P1.5 `/review-pr`
@@ -287,6 +287,7 @@ Preuves détaillées (sorties de chaque cas) : `plans/done/20261021-2020-phase0-
 - **21/10/2026 — `superset status` ment sur un host installé par la CLI** (bug upstream de `looksLikeHostProcess`, `packages/cli/src/lib/host/process-identity.ts` : il cherche `superset-host` dans la ligne de commande, mais le wrapper fait `exec node host-service.js`). Pour vérifier le host, utiliser `superset hosts list`. Ne pas lancer `superset start` à la main à côté du service : il risque de démarrer un second host. Corrigé dans le fork : PR andreagnzz/superset#2 (effectif sur le VPS seulement quand le build du fork remplacera l'officiel, Phase 2).
 - **21/10/2026 — Fenêtre de confiance de Claude Code : approuver chaque projet une fois.** Un worktree hérite la confiance du dépôt principal du projet. Si le dépôt principal n'a jamais été approuvé, chaque nouveau worktree bloque Claude sur « Is this a project you created or one you trust? », même avec `--dangerously-skip-permissions`. Superset ne pré-approuve volontairement jamais un dossier qui contient déjà du code (`seed-agent-trust.ts`). Règle pour P1.4 et M3 : avant le premier run sur un projet, vérifier que `projects["<chemin du dépôt principal>"].hasTrustDialogAccepted` vaut `true` dans `~/.claude.json`, sinon ouvrir `claude` une fois dans ce dossier et accepter. Vérifié le 21/10 : une fois `~/code/ade-sandbox` approuvé, un nouveau workspace a démarré sans la fenêtre.
 - **21/10/2026 — Sur un host neuf, lancer `superset agents list --local` une fois** avant `workspaces create --agent claude`, sinon « No host agent config matching 'claude' ». Déjà fait sur le VPS. Corrigé dans le fork : PR andreagnzz/superset#3.
+- **21/10/2026 — P1.2 : mod `router` en place.** Le code vit dans le fork, `ade/router/` (M6 l'injectera depuis le host). Copie déployée dans `~/.local/share/ade/router`, chargée par `CLAUDE_CODE_PLUGIN_DIRS` dans la clé `env` de `~/.claude/settings.json` : toutes les sessions Claude du VPS l'ont, y compris celles que lance Superset. Pour changer la grille : modifier `ade/router/routing.json`, puis `rsync -a --delete --exclude='*.test.ts' --exclude='.claude-plugin/types' --exclude='.gitignore' ade/router/ ~/.local/share/ade/router/`. Retour arrière : retirer `CLAUDE_CODE_PLUGIN_DIRS` de `~/.claude/settings.json`. Vérifié sur de vrais subagents : `Explore` → haiku/low, tâche « typo » → haiku/low, tâche neutre → modèle du parent. Un `routing.json` invalide ne route rien et ne bloque jamais un subagent.
 - **21/10/2026 — Remote `origin` en SSH** (`git@github.com:andreagnzz/superset.git`) : git n'a pas d'identifiants HTTPS sur le VPS, alors que la clé SSH de `gh` marche.
 
 ## Sources
