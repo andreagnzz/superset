@@ -25,6 +25,14 @@ describe("looksLikeHostProcess", () => {
 		expect(looksLikeHostProcess("/opt/superset/bin/superset-host")).toBe(true);
 	});
 
+	test("matches the node process the superset-host wrapper execs into", () => {
+		expect(
+			looksLikeHostProcess(
+				"/home/me/superset/bin/../lib/node /home/me/superset/bin/../lib/host-service.js",
+			),
+		).toBe(true);
+	});
+
 	test("does not match an unrelated command", () => {
 		expect(looksLikeHostProcess("/usr/sbin/some-other-daemon")).toBe(false);
 	});

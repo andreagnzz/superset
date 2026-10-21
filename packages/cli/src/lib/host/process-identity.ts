@@ -1,6 +1,8 @@
 import { execFile } from "node:child_process";
 
-const HOST_PROCESS_NAME = "superset-host";
+// The superset-host wrapper execs `lib/node lib/host-service.js`, so ps
+// shows the entry script, not the wrapper's name.
+const HOST_PROCESS_MARKERS = ["superset-host", "host-service.js"];
 const PS_TIMEOUT_MS = 2_000;
 
 /**
@@ -23,5 +25,5 @@ export async function inspectProcessCommand(
 }
 
 export function looksLikeHostProcess(command: string): boolean {
-	return command.includes(HOST_PROCESS_NAME);
+	return HOST_PROCESS_MARKERS.some((marker) => command.includes(marker));
 }
