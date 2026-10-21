@@ -7,6 +7,7 @@ import type { WorkerTaskDefinition } from "./define-worker-task.ts";
 import { startGitDirectoryWorker } from "./git-directory-worker.ts";
 import { gitTasks } from "./tasks/git.ts";
 import { harnessTasks } from "./tasks/harness.ts";
+import { planStackTasks } from "./tasks/plan-stack.ts";
 import { usageTasks } from "./tasks/usage.ts";
 import { watcherTasks } from "./tasks/watcher.ts";
 import { killAndReapTrackedChildren } from "./worker-child-tracker.ts";
@@ -26,6 +27,7 @@ const registry = new Map<string, WorkerTaskDefinition<any, unknown>>();
 for (const def of [
 	...gitTasks,
 	...harnessTasks,
+	...planStackTasks,
 	...usageTasks,
 	...watcherTasks,
 ]) {
