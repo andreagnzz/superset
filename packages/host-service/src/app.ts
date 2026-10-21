@@ -419,6 +419,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				? {
 						state: agentRunState(binding.lastEventType),
 						lastEventAt: binding.lastEventAt,
+						turnEnded: binding.lastEventType === "Stop",
 					}
 				: { state: "starting" };
 		},

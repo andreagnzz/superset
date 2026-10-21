@@ -139,7 +139,12 @@ function setup(
 		(await manager.list())[0]?.issues.find((i) => i.key === key);
 	const idle = (terminalId: string, answer?: string) => {
 		clock += 10;
-		agents.set(terminalId, { state: "idle", lastEventAt: clock, answer });
+		agents.set(terminalId, {
+			state: "idle",
+			lastEventAt: clock,
+			turnEnded: true,
+			answer,
+		});
 	};
 	const stop = async (key: string, answer: string) =>
 		idle((await current(key))?.terminalId ?? "", answer);
@@ -283,6 +288,17 @@ describe("PlanRunManager", () => {
 		expect((await h.current("A"))?.error).toBe(
 			"review not approved after 3 rounds",
 		);
+	});
+
+	it("waits for a reviewer's first turn to end, not for its first idle state", async () => {
+		const h = setup();
+		await importAndStart(h.manager, 1, [issue("A")]);
+		await h.done("A");
+		await h.manager.tick();
+		h.agents.set("r-A-1", { state: "idle", lastEventAt: 2_000 });
+		await h.manager.tick();
+		expect(h.sends).toEqual([]);
+		expect(await h.statuses()).toEqual({ A: "review" });
 	});
 
 	it("nudges a reviewer once for its verdict, then replaces it", async () => {

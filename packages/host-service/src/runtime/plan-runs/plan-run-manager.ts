@@ -26,6 +26,8 @@ const NUDGE_TEXT =
 export type PlanAgentState = {
 	state: "starting" | "working" | "blocked" | "idle" | "gone";
 	lastEventAt?: number;
+	/** The agent's last hook event was a Stop: its turn is over. Idle alone is not. */
+	turnEnded?: boolean;
 };
 
 /** One agent terminal of an issue: its implementer or its current reviewer. */
@@ -288,17 +290,18 @@ export class PlanRunManager {
 		askedAt: number | undefined,
 	): Promise<
 		| { gone: true }
-		| { gone: false; idle: boolean; answer: string | null }
+		| { gone: false; ended: boolean; answer: string | null }
 		| null
 	> {
-		const { state, lastEventAt } = await this.deps.agentState(target);
+		const { state, lastEventAt, turnEnded } =
+			await this.deps.agentState(target);
 		if (state === "gone") return { gone: true };
 		const stale =
 			lastEventAt !== undefined && this.now() - lastEventAt > STALE_STATE_MS;
-		if (state !== "idle" && !stale) return null;
+		if (!turnEnded && !stale) return null;
 		if (askedAt !== undefined && (lastEventAt ?? 0) <= askedAt) return null;
 		const answer = await this.deps.readAnswer(target);
-		return { gone: false, idle: state === "idle", answer };
+		return { gone: false, ended: turnEnded === true, answer };
 	}
 
 	private async reconcileWorker(
@@ -313,7 +316,7 @@ export class PlanRunManager {
 		}
 		if (settled.answer === null) return;
 		const envelope = parseWorkerEnvelope(settled.answer, issue.key);
-		if (!settled.idle && !envelope) return;
+		if (!settled.ended && !envelope) return;
 		if (envelope?.kind === "done") {
 			issue.summary = envelope.summary;
 			issue.error = undefined;
