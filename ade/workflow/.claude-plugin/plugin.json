@@ -1,0 +1,5 @@
+{
+	"name": "ade",
+	"version": "0.1.0",
+	"description": "Plan a feature into issues, run them in parallel Superset workspaces, review each PR with a fresh agent"
+}
