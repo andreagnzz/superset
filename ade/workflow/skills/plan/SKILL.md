@@ -58,7 +58,14 @@ It prints `OK <n> issues, order: …` or one error per line. Fix the file and ru
 
 ## Finish
 
-Reply with the two paths, a table of the issues (key, size, dependsOn, stackOn, title), and the command to run them:
+Reply with the two paths, a table of the issues (key, size, dependsOn, stackOn, title), and the commands to run them. On a host that runs this fork, the host keeps the run going after every terminal closes, opens one pull request per issue and loops fresh reviewers on it:
+
+```text
+superset plan import plans/<timestamp>-<name>.issues.json --project <project id> --local
+superset plan run <run id> --max-parallel 3 --local
+```
+
+Otherwise, from this session (the run lives in the session's context):
 
 ```text
 /ade:run-plan plans/<timestamp>-<name>.issues.json --max-parallel 3
