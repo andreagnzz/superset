@@ -1,0 +1,5 @@
+{
+	"name": "router",
+	"version": "0.1.0",
+	"description": "Route each subagent's model and effort from routing.json"
+}
