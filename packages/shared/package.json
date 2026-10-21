@@ -309,6 +309,10 @@
 			"types": "./src/agent-launch-estimator.ts",
 			"default": "./src/agent-launch-estimator.ts"
 		},
+		"./plan-issues": {
+			"types": "./src/plan-issues.ts",
+			"default": "./src/plan-issues.ts"
+		},
 		"./billing": {
 			"types": "./src/billing.ts",
 			"default": "./src/billing.ts"
