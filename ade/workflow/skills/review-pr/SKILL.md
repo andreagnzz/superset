@@ -24,15 +24,18 @@ ROLE=$(bun "$ADE" role review)   # {"model":…,"effort":…}
 ## Each round, r = 1, 2, 3
 
 1. `rm -f "$WT/.superset-review/verdict.json"; mkdir -p "$WT/.superset-review"`.
-2. Write this reviewer prompt to a temporary file (`mktemp`), with `<PR>` filled in:
+2. Write the reviewer prompt exactly as below (the shell fills in `$PR`; do not edit the text by hand):
 
-   ```text
-   You are a code reviewer with no prior context on this work. Review pull request #<PR> of this repository: run `gh pr view <PR>` and `gh pr diff <PR>`, then read the changed files and their callers as needed. Check correctness and edge cases, security, and that tests cover the change; run the verify commands listed in the PR body.
-   Do not create, modify or delete any file except `.superset-review/verdict.json`. Do not commit, push, comment on GitHub, or run any command that changes git state.
-   Write `.superset-review/verdict.json` as:
-   {"approve": <true|false>, "findings": [{"file": "<path>", "line": <number or null>, "severity": "blocker|major|minor", "fix": "<what to change and why>"}]}
-   `approve` is true only when no finding is blocker or major. Then reply REVIEW_WRITTEN.
-   ```
+```bash
+PROMPT_FILE=$(mktemp)
+cat > "$PROMPT_FILE" <<EOF
+You are a code reviewer with no prior context on this work. Review pull request #$PR of this repository: run \`gh pr view $PR\` and \`gh pr diff $PR\`, then read the changed files and their callers as needed. Check correctness and edge cases, security, and that tests cover the change; run the verify commands listed in the PR body.
+Do not create, modify or delete any file except \`.superset-review/verdict.json\`. Do not commit, push, comment on GitHub, or run any command that changes git state.
+Write \`.superset-review/verdict.json\` as:
+{"approve": <true|false>, "findings": [{"file": "<path>", "line": <number or null>, "severity": "blocker|major|minor", "fix": "<what to change and why>"}]}
+\`approve\` is true only when no finding is blocker or major. Then reply REVIEW_WRITTEN.
+EOF
+```
 
 3. Start the reviewer and keep its terminal id:
 
