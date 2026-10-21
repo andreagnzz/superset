@@ -21,6 +21,7 @@ import {
 	continuationTarget,
 	validateAgentEffortSelection,
 	validateAgentForkSelection,
+	validateAgentLaunchOptions,
 	validateAgentModelSelection,
 	validateAgentModeSelection,
 	validateAgentResumeSelection,
@@ -531,6 +532,30 @@ describe("buildTerminalAgentLaunch", () => {
 				prompt: "p",
 			}),
 		).toThrow(/No host agent config matching 'nope'/);
+	});
+
+	it("launches a built-in preset on a host no client has listed agents for", () => {
+		const db = createTestDb();
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "p",
+			model: "haiku",
+			effort: "low",
+		});
+		expect(launch.label).toBe("Claude");
+		expect(launch.fullCommand).toContain("'claude'");
+	});
+
+	it("preflights a built-in preset on a host no client has listed agents for", () => {
+		const db = createTestDb();
+		expect(() =>
+			validateAgentLaunchOptions(db, {
+				agent: "claude",
+				model: "haiku",
+				effort: "low",
+			}),
+		).not.toThrow();
 	});
 });
 

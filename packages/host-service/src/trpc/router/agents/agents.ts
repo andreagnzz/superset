@@ -46,6 +46,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 import { createChatSession } from "../sessions/create-chat-session";
+import { seedDefaultsIfEmpty } from "../settings/agent-configs";
 import { toTerminalSessionError } from "../terminal/errors";
 import { seedAgentFolderTrust } from "../workspace-creation/shared/seed-agent-trust";
 
@@ -358,6 +359,8 @@ export function validateAgentLaunchOptions(
 ): void {
 	if (!input.model && !input.effort && !input.mode) return;
 
+	// A CLI-only host can launch before any client listed (and so seeded) agents.
+	seedDefaultsIfEmpty(db);
 	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
 		throw new TRPCError({
@@ -389,6 +392,7 @@ export function buildTerminalAgentLaunch(
 	db: HostDb,
 	input: AgentRunInput,
 ): { fullCommand: string; label: string } {
+	seedDefaultsIfEmpty(db);
 	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
 		// Worded for end users (automation run errors show this verbatim), but
