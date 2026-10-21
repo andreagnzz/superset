@@ -39,9 +39,9 @@ None. Q1 to Q5 (permissions, inotify, machine id, Pro plan, publishing) were ans
 - [x] (2026-10-21 18:40Z) Owner approved this plan and answered Q1, Q2, Q3, Q5.
 - [x] (2026-10-21 18:55Z) Owner answered Q4: no Pro plan. Milestone 2 switches to the VPS-only path.
 - [x] (2026-10-21 18:45Z) Milestone 1: prerequisites checked; inotify raised to 1024 / 524288.
-- [ ] Milestone 2: install the CLI on the VPS, owner signs in, host online in `superset status`, workspace and agent created with the CLI (remaining, needs the owner for the sign-in).
+- [x] (2026-10-21 18:43Z) Milestone 2: CLI 1.39.0 installed on the VPS, owner signed in, systemd user service `superset-host` enabled and running, host `claude-vps` online in `superset hosts list`, workspace created and Claude answered in it.
 - [x] (2026-10-21 19:05Z) Milestone 3: spike (a) model, (b) effort, (c) permission flags, with evidence in Artifacts and Notes.
-- [ ] Milestone 4 (completed: results recorded in this plan and in the roadmap; remaining: push, draft PR, and moving this plan to `plans/done/` once Milestone 2 is done).
+- [x] (2026-10-21 18:50Z) Milestone 4: results recorded in this plan and in the roadmap; draft PR andreagnzz/superset#1 opened; this plan moved to `plans/done/`.
 
 
 ## Surprises & Discoveries
@@ -75,6 +75,18 @@ None. Q1 to Q5 (permissions, inotify, machine id, Pro plan, publishing) were ans
 
 - Observation: `claude plugin validate` warns "gating hook without .catch" for both hooks. Without `.catch`, a hook that throws is skipped and the subagent starts with the values the caller asked for. That is the wanted behaviour for a router: a broken rule must not block subagents.
   Evidence: validate output, lines `./register.ts gating hook without .catch: agent.spawn` and `… tool.call{tool=Agent}`.
+
+- Observation: `superset status` reports a running host as `"running": false, "stale": true` on a CLI install. This is an upstream bug of CLI 1.39.0, not an install problem. `looksLikeHostProcess` (`packages/cli/src/lib/host/process-identity.ts`) looks for `superset-host` in the process command line, but the `superset-host` wrapper script runs `exec "$SCRIPT_DIR/../lib/node" "$SCRIPT_DIR/../lib/host-service.js"`, so the command line is `…/lib/node …/lib/host-service.js`. The same check is used by `superset start` to detect a running host, so a manual `superset start` beside the service may start a second host. Use `superset hosts list` to check the host instead, and never run `superset start` by hand while the service runs.
+  Evidence: `ps -o args -p <host pid>` prints `/home/andrea/superset/bin/../lib/node /home/andrea/superset/bin/../lib/host-service.js`; the service log says `registered as host a2b72f131601cda18cd79ec8d89ac275` and `Connected to relay`; `superset hosts list` prints `"online": "yes"`.
+
+- Observation: every new worktree stops Claude Code on its "Is this a project you created or one you trust?" dialog before the prompt runs, even with `--dangerously-skip-permissions`. An unattended queue (roadmap P1.4 and M3) would block on it for every issue. P1.4 must solve it first (for example by trusting the worktrees parent folder once, if Claude Code inherits trust from a parent; not tested).
+  Evidence: `superset agents wait --until settled` timed out with "agent is starting"; `superset terminals read` showed the dialog; `superset terminals send --keys down,enter` released it.
+
+- Observation: on a fresh host, `superset workspaces create --agent claude` failed with "No host agent config matching 'claude'" until `superset agents list --local` had run once; after that the built-in configs existed and the same command worked. `workspaces create --project` also requires `--name`.
+  Evidence: the two error messages, then a successful `workspaces create` right after `agents list`.
+
+- Observation: on a headless machine, `superset auth login` prints an authorize URL whose redirect is `https://app.superset.sh/cli/auth/code`; the web page shows a `<code>#<state>` value to paste back into the waiting CLI. The paste prompt has no timeout. The code only works with the PKCE verifier held by that CLI process.
+  Evidence: `packages/cli/src/lib/auth.ts` (`PASTE_REDIRECT_PATH`, `parsePastedCode`) and the login run in `tmux`.
 
 - Observation: `systemctl --user` fails from this agent's shell with "Failed to connect to bus: No medium found", because the shell has no `XDG_RUNTIME_DIR`. A normal SSH login sets it. `superset hosts add` runs over SSH, so this is expected to be fine, but Milestone 2 checks it.
 
@@ -116,6 +128,15 @@ None. Q1 to Q5 (permissions, inotify, machine id, Pro plan, publishing) were ans
 - Decision (Q5): push the branch to `origin` and open a draft PR against the fork's `main`.
   Rationale: the roadmap asks for one PR per milestone.
   Date/Author: 2026-10-21, owner.
+
+- Decision: write `~/.config/systemd/user/superset-host.service` by hand, with the exact content `systemdUnit()` produces in `packages/cli/src/lib/ssh-host-setup/service.ts` (`ExecStart="/home/andrea/superset/bin/superset" start --org "<organization id>"`, `Restart=on-failure`, `RestartSec=5`, `KillMode=process`, `WantedBy=default.target`), then `systemctl --user daemon-reload`, `enable`, `start`.
+  Rationale: `superset hosts add` writes this unit, but it runs from a client over SSH; without Pro there is no client. Same file, so a later `hosts add` sees it as unchanged. Lingering is on, so the service starts at boot without a login. A real reboot was not tested because other services run on the VPS.
+  Date/Author: 2026-10-21, Claude.
+
+- Decision: use a new local toy repository `~/code/ade-sandbox` (one commit, no remote) as Superset project `ade-sandbox` (id `437aeaae-b674-4b77-ab34-d4ae154f3015`) for the acceptance check, not this monorepo.
+  Rationale: a workspace of the monorepo could run its setup scripts and install dependencies on an 11 GiB machine for a smoke test. The roadmap's Phase 1 acceptance needs a toy repo anyway; it will need a GitHub remote then.
+  Date/Author: 2026-10-21, Claude.
+
 - Decision (spike (a)): a mod changes a subagent's model with `on('agent.spawn', …)` and `next({ ...e, model })`, even when the caller passed an explicit `model`. P1.2 uses this. The fallback `CLAUDE_CODE_SUBAGENT_MODEL` is not needed.
   Rationale: case A1 ran the subagent on `claude-haiku-5-5` while the parent asked for `sonnet`; baseline A0 ran it on `claude-sonnet-5-5`.
   Date/Author: 2026-10-21, Claude (spike).
@@ -131,7 +152,11 @@ None. Q1 to Q5 (permissions, inotify, machine id, Pro plan, publishing) were ans
 
 ## Outcomes & Retrospective
 
-To be written at the end of Milestone 4.
+Both goals are met. The VPS is a Superset host (`claude-vps`, online, systemd user service, relay connected) driven with the CLI, and a Claude agent launched by Superset ran in a workspace on it. The Mac app does not drive it because the account has no Pro plan; that only matters for roadmap phase 3. The spike proved that one small mod can set a subagent's model (`agent.spawn`) and effort (`tool.call` on `Agent`) on Claude Code 2.1.305, so P1.2 can start from `plans/spikes/20261021-p1-1-router-spike/hooks/register.ts`. It also showed that roadmap M0 needs a different preset command.
+
+Three findings change later work. The trust dialog on each new worktree must be handled before any unattended run (P1.4, M3). `superset status` is wrong for CLI-installed hosts (upstream bug in `looksLikeHostProcess`), so checks must use `superset hosts list`. The VPS has 11 GiB of RAM, not 16.
+
+Lesson: the roadmap's API snippets were written from documentation and two were wrong; reading the types shipped with the installed build first caught both before any code was written.
 
 
 ## Context and Orientation
@@ -318,6 +343,26 @@ Case C prints the `permissionMode` of the stream-json `init` event and whether t
     C1i  --dangerously-skip-permissions --permission-mode plan        ⏵⏵ bypass permissions on (shift+tab to cycle)
     C3i  --allow-dangerously-skip-permissions --permission-mode plan  ⏸ plan mode on (shift+tab to cycle)
 
+Phase 0 acceptance on the VPS (no Pro plan), 2026-10-21:
+
+    $ superset hosts list
+    [{"id":"a2b72f131601cda18cd79ec8d89ac275","name":"claude-vps","online":"yes"}]
+    $ systemctl --user status superset-host
+    Active: active (running) since Wed 2026-10-21 20:38:12 CEST
+    $ superset workspaces create --local --project 437aeaae-… --name phase0-check --branch phase0-check \
+        --agent claude --model haiku --effort low --prompt "Reply with the single word OK."
+    "agents": [{"ok": true, "kind": "terminal", "label": "Claude"}]
+    (trust dialog accepted with: superset terminals send --keys down,enter)
+    $ superset agents wait --until settled
+    {"state": "idle", "lastEventType": "Stop"}
+    $ superset terminals read
+    Haiku 5.5 with low effort · Claude Max
+    ❯ Reply with the single word OK.
+    ● OK
+    ⏵⏵ bypass permissions on
+
+The test workspace was archived afterwards; the project `ade-sandbox` stays for Phase 1.
+
 
 ## Interfaces and Dependencies
 
@@ -381,3 +426,5 @@ Then read `session_id` from the JSON result, find `~/.claude/projects/*/<session
 ## Revision notes
 
 2026-10-21: recorded the owner's answers (Q1 to Q5), the Milestone 1 result and the spike results (a), (b), (c). Milestone 2 moved from the Mac to the VPS because the owner has no Pro plan, so the relay-based Remote Access is not available.
+
+2026-10-21: Milestone 2 done on the VPS without Pro (CLI install, sign-in, hand-written systemd unit, toy project, workspace and agent check). Recorded the `superset status` false negative, the per-worktree trust dialog and the lazily seeded agent configs. Plan moved to `plans/done/`.

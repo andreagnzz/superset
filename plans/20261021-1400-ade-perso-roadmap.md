@@ -255,8 +255,8 @@ Injecter le mod `router` dans chaque Claude lancé par Superset : `CLAUDE_CODE_P
 
 ## Progress
 
-- [ ] Phase 0 : bon fork, host VPS ajouté, choix des permissions, mises à jour automatiques coupées (fait le 21/10 : fork, inotify, permissions ; reste : installer et connecter le host sur le VPS)
-- [x] P1.1 spike (a), (b), (c) (21/10/2026, `plans/20261021-2020-phase0-host-setup-p1-1-spike.md`)
+- [x] Phase 0 : bon fork, host VPS ajouté, choix des permissions, mises à jour automatiques coupées (21/10/2026, sans Pro : host piloté en CLI sur le VPS)
+- [x] P1.1 spike (a), (b), (c) (21/10/2026, `plans/done/20261021-2020-phase0-host-setup-p1-1-spike.md`)
 - [ ] P1.2 mod `router`
 - [ ] P1.3 `/plan`
 - [ ] P1.4 `/run-plan`
@@ -274,7 +274,7 @@ Injecter le mod `router` dans chaque Claude lancé par Superset : `CLAUDE_CODE_P
 
 Décisions D1 à D6 en section 4. Ajouter ici les résultats du spike P1.1 et chaque changement de cap, avec la date et la raison.
 
-Preuves détaillées (sorties de chaque cas) : `plans/20261021-2020-phase0-host-setup-p1-1-spike.md`, section « Artifacts and Notes ». Mod et script du spike : `plans/spikes/20261021-p1-1-router-spike/`.
+Preuves détaillées (sorties de chaque cas) : `plans/done/20261021-2020-phase0-host-setup-p1-1-spike.md`, section « Artifacts and Notes ». Mod et script du spike : `plans/spikes/20261021-p1-1-router-spike/`.
 
 - **21/10/2026 — Spike (a) validé.** Sur Claude Code 2.1.305, `on('agent.spawn', …)` + `next({ ...e, model: 'haiku' })` fait tourner le subagent sur `claude-haiku-5-5` même quand le parent demande `model: "sonnet"` (vu dans `requestedModel` du transcript du subagent). Le repli `CLAUDE_CODE_SUBAGENT_MODEL` est inutile.
 - **21/10/2026 — Spike (b) validé.** `on('tool.call', { tool: 'Agent' }, …)` + `next({ ...e, effort: 'low' })` passe l'effort du subagent de `medium` à `low`. Même résultat avec tous tes plugins utilisateur chargés. Les voies `turn.step` et `PreToolUse` n'ont pas été nécessaires.
@@ -283,6 +283,10 @@ Preuves détaillées (sorties de chaque cas) : `plans/20261021-2020-phase0-host-
 - **21/10/2026 — Permissions : bypass gardé** pour le preset `claude` (Phase 0 étape 5). Réversible dans les réglages d'agent du host.
 - **21/10/2026 — Le VPS a 11 Go de RAM, pas 16.** À prendre en compte pour la limite par défaut de M3.
 - **21/10/2026 — Fork déjà en place** : `origin` = `andreagnzz/superset` (même HEAD qu'upstream), `upstream` = `superset-sh/superset`.
+- **21/10/2026 — Host installé sans Pro.** CLI 1.39.0 dans `~/superset` (script officiel), connexion par `superset auth login` (mode « coller le code »), service `~/.config/systemd/user/superset-host.service` écrit à la main à l'identique de ce que fait `superset hosts add`, activé, avec le linger. Projet jouet `ade-sandbox` (`~/code/ade-sandbox`, sans remote pour l'instant) : un workspace et un agent Claude y ont tourné. Reboot pas testé.
+- **21/10/2026 — `superset status` ment sur un host installé par la CLI** (bug upstream de `looksLikeHostProcess`, `packages/cli/src/lib/host/process-identity.ts` : il cherche `superset-host` dans la ligne de commande, mais le wrapper fait `exec node host-service.js`). Pour vérifier le host, utiliser `superset hosts list`. Ne pas lancer `superset start` à la main à côté du service : il risque de démarrer un second host.
+- **21/10/2026 — À régler avant P1.4 et M3 : la fenêtre de confiance de Claude Code.** Chaque nouveau worktree bloque Claude sur « Is this a project you created or one you trust? », même avec `--dangerously-skip-permissions`. Une file d'attente sans surveillance resterait bloquée à chaque issue.
+- **21/10/2026 — Sur un host neuf, lancer `superset agents list --local` une fois** avant `workspaces create --agent claude`, sinon « No host agent config matching 'claude' ».
 
 ## Sources
 
